@@ -8,7 +8,7 @@ import type { DecorationSet, ViewUpdate } from '@codemirror/view';
 import { BinScriptError, compileBinScript } from './binscript-language.js';
 import type { BinScriptProjectionTarget } from './binscript-language.js';
 import { compileRecipe } from './recipe-executor.js';
-import type { ImageData, RecipeArtifact } from './recipe-executor.js';
+import type { ImageData } from './recipe-executor.js';
 
 export const STARTER_SOURCE = `import "bingen/basic"
 
@@ -199,9 +199,14 @@ interface StagePreview {
 }
 
 interface StagePreviewRow {
+  stageIds: string[];
+  images: StagePreviewImage[];
+}
+
+interface StagePreviewImage {
   stageId: string;
-  images: readonly ImageData[];
-  artifactCount: number;
+  image: ImageData;
+  index: number;
 }
 
 const setStagePreviews = StateEffect.define<readonly StagePreview[]>();
@@ -223,12 +228,12 @@ class StagePreviewWidget extends WidgetType {
     return (
       this.preview.version === other.preview.version &&
       this.preview.rows.length === other.preview.rows.length &&
-      this.preview.rows.every((row, index) => row.stageId === other.preview.rows[index]?.stageId)
+      this.preview.rows.every((row, index) => row.stageIds.join('\0') === other.preview.rows[index]?.stageIds.join('\0'))
     );
   }
 
   get estimatedHeight(): number {
-    return this.preview.rows.length * 78;
+    return this.preview.rows.length * 76 + 2;
   }
 
   toDOM(view: EditorView): HTMLElement {
@@ -244,18 +249,12 @@ class StagePreviewWidget extends WidgetType {
     panel.className = 'binscript-stage-preview';
     const strip = document.createElement('div');
     strip.className = 'binscript-preview-strip';
-    for (const [index, image] of row.images.entries()) {
+    for (const preview of row.images) {
       const canvas = document.createElement('canvas');
       canvas.className = 'binscript-preview-canvas';
-      canvas.setAttribute('aria-label', `${row.stageId} preview ${index + 1}`);
-      drawPreview(canvas, image);
+      canvas.setAttribute('aria-label', `${preview.stageId} preview ${preview.index + 1}`);
+      drawPreview(canvas, preview.image);
       strip.append(canvas);
-    }
-    if (row.artifactCount > row.images.length) {
-      const remainder = document.createElement('span');
-      remainder.className = 'binscript-preview-remainder';
-      remainder.textContent = `+${row.artifactCount - row.images.length}`;
-      strip.append(remainder);
     }
     panel.append(strip);
     return panel;
@@ -340,12 +339,17 @@ export function createRecipeNotebook({ parent, initialSource = STARTER_SOURCE }:
       const previews = targets.map((target) => {
         return {
           at: target.at,
-          rows: target.stageIds.map((stageId) => {
-            const artifacts = result.stages.get(stageId) ?? [];
+          rows: target.stageRows.map((stageIds) => {
+            const artifacts = stageIds.flatMap((stageId) =>
+              (result.stages.get(stageId) ?? []).map((artifact, index) => ({ artifact, stageId, index })),
+            );
             return {
-              stageId,
-              images: artifacts.slice(0, 8).map((artifact: RecipeArtifact) => artifact.image),
-              artifactCount: artifacts.length,
+              stageIds,
+              images: artifacts.map(({ artifact, stageId, index }) => ({
+                stageId,
+                image: artifact.image,
+                index,
+              })),
             };
           }),
           version,

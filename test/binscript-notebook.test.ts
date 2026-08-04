@@ -49,11 +49,11 @@ test('notebook projections retain exact source ranges for controls and stages', 
   const numbers = targets.filter((target) => target.kind === 'number');
 
   assert.deepEqual(
-    stages.map((target) => target.stageIds),
+    stages.map((target) => target.stageRows),
     [
-      ['blocks'],
-      ['bottom-up', 'top-down', 'left-right', 'right-left'],
-      ['top-down-colors', 'bottom-up-colors', 'left-right-colors', 'right-left-colors'],
+      [['blocks']],
+      [['bottom-up', 'top-down', 'left-right', 'right-left']],
+      [['top-down-colors'], ['bottom-up-colors'], ['left-right-colors'], ['right-left-colors']],
     ],
   );
   assert.deepEqual(
@@ -150,8 +150,8 @@ pair := [red, blue]
   assert.deepEqual(compiled.document.outputs, [{ stage: 'red' }, { stage: 'blue' }]);
   const displays = compiled.projections.filter((target) => target.kind === 'stage');
   assert.deepEqual(
-    displays.map((target) => target.stageIds),
-    [['red', 'blue', 'red']],
+    displays.map((target) => target.stageRows),
+    [[['red', 'blue'], ['red']]],
   );
 });
 

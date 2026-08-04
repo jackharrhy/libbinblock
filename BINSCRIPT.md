@@ -13,7 +13,7 @@ The first functional slice supports:
 - CSS-inspired linear and radial gradients, including percentage stops and `lg`/`rg` shorthands.
 - Fluent `size`, `mask`, and `preview` operations.
 - Pure assignments and notebook output from standalone image-set expressions.
-- Ordered arrays of image sets; standalone arrays display one preview row per member without unioning or compositing their artifacts.
+- Ordered arrays of image sets; standalone flat image arrays share one preview row, while nested artifact collections retain separate rows inside one frame without unioning or compositing their artifacts.
 - Source-linked sliders, color controls, diagnostics, and inline artifact previews.
 
 BinScript is parsed and lowered without evaluating arbitrary JavaScript. Compilation still passes through the existing Zod recipe schema, dependency graph, and deterministic image engine.

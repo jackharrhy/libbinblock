@@ -89,7 +89,7 @@ export type BinScriptProjectionTarget =
       step: number;
       suffix: string;
     }
-  | { kind: 'stage'; from: number; to: number; at: number; stageIds: string[] };
+  | { kind: 'stage'; from: number; to: number; at: number; stageRows: string[][] };
 
 export class BinScriptError extends Error {
   constructor(
@@ -344,6 +344,7 @@ interface MaskPlan {
 interface StageReference {
   kind: 'stage';
   stageId: string;
+  cardinality: 'one' | 'many';
 }
 
 interface FunctionReference {
@@ -652,17 +653,23 @@ export function compileBinScript(source: string): CompiledBinScript {
     throw new BinScriptError(`Unknown method: ${expression.name}`, expression.from, expression.to);
   };
 
-  const displayedStages = (value: RuntimeValue): string[] | undefined => {
+  const displayedStages = (value: RuntimeValue): { stageIds: string[]; rows: string[][] } | undefined => {
     if (typeof value !== 'object') return undefined;
-    if (value.kind === 'stage') return [value.stageId];
+    if (value.kind === 'stage') return { stageIds: [value.stageId], rows: [[value.stageId]] };
     if (value.kind !== 'array') return undefined;
+    if (value.items.every((item) => typeof item === 'object' && item.kind === 'stage' && item.cardinality === 'one')) {
+      const stageIds = value.items.map((item) => (item as StageReference).stageId);
+      return { stageIds, rows: [stageIds] };
+    }
     const stageIds: string[] = [];
+    const rows: string[][] = [];
     for (const item of value.items) {
       const nested = displayedStages(item);
       if (!nested) return undefined;
-      stageIds.push(...nested);
+      stageIds.push(...nested.stageIds);
+      rows.push(...nested.rows);
     }
-    return stageIds;
+    return { stageIds, rows };
   };
 
   for (const statement of statements) {
@@ -675,21 +682,21 @@ export function compileBinScript(source: string): CompiledBinScript {
     projectColors(statement.expression);
     if (statement.kind === 'expression') {
       const value = evaluate(statement.expression);
-      const stageIds = displayedStages(value);
-      if (!stageIds?.length) {
+      const display = displayedStages(value);
+      if (!display?.stageIds.length) {
         throw new BinScriptError(
           'Standalone expressions must resolve to one or more bound image sets.',
           statement.expression.from,
           statement.expression.to,
         );
       }
-      outputs.push(...stageIds);
+      outputs.push(...display.stageIds);
       projections.push({
         kind: 'stage',
         from: statement.expression.from,
         to: statement.expression.to,
         at: statement.expression.to,
-        stageIds,
+        stageRows: display.rows,
       });
       continue;
     }
@@ -772,7 +779,7 @@ export function compileBinScript(source: string): CompiledBinScript {
       throw new BinScriptError('Bindings must produce a palette or image set.', statement.from, statement.to);
     }
     stages.push(stage);
-    environment.set(statement.name, { kind: 'stage', stageId });
+    environment.set(statement.name, { kind: 'stage', stageId, cardinality: value.kind === 'images' ? 'one' : 'many' });
     lastStage = stageId;
   }
 

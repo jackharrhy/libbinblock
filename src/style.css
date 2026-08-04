@@ -86,10 +86,18 @@ input {
 }
 
 .binscript-stage-preview {
-  display: inline-block;
+  display: block;
   width: fit-content;
-  max-width: 100%;
   margin: 0;
+}
+
+.binscript-preview-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  overflow-x: auto;
   border: 1px solid #111;
   background-color: #e7e7e7;
   background-image:
@@ -103,22 +111,12 @@ input {
   background-size: 10px 10px;
 }
 
-.binscript-preview-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: fit-content;
-  max-width: 100%;
-}
-
 .binscript-preview-strip {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
   gap: 8px;
   width: max-content;
-  max-width: 100%;
-  overflow-x: auto;
   padding: 6px;
 }
 
@@ -127,16 +125,6 @@ canvas.binscript-preview-canvas {
   height: 64px;
   border: 1px solid #111;
   background: transparent;
-}
-
-.binscript-preview-remainder {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border: 1px dashed #111;
-  background: #fff;
-  font-size: 13px;
 }
 
 @media (max-width: 620px) {
