@@ -17,23 +17,9 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-button,
 input {
   color: inherit;
   font: inherit;
-}
-
-button {
-  border: 1px solid #111;
-  border-radius: 0;
-  background: #fff;
-  cursor: pointer;
-  padding: 5px 9px;
-}
-
-button:hover,
-button:focus-visible {
-  background: #12dbea;
 }
 
 .notebook-app {
@@ -48,48 +34,16 @@ button:focus-visible {
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-height: 48px;
-  padding: 7px 10px 7px 14px;
+  min-height: 36px;
+  padding: 7px 14px;
   border-bottom: 1px solid #111;
   background: #fffff5;
 }
 
 .notebook-brand {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+  font-size: 14px;
+  font-weight: 400;
   white-space: nowrap;
-}
-
-.notebook-brand strong {
-  font-size: 18px;
-  letter-spacing: -0.5px;
-}
-
-.notebook-brand span {
-  color: #666;
-  font-size: 11px;
-}
-
-.notebook-actions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.notebook-actions output {
-  margin-right: 3px;
-  color: #555;
-  font-size: 11px;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.notebook-actions kbd {
-  font: inherit;
-  font-size: 10px;
 }
 
 #binscript-editor {
@@ -179,23 +133,6 @@ canvas.binscript-preview-canvas {
 
 @media (max-width: 620px) {
   .notebook-bar {
-    align-items: flex-start;
-    gap: 8px;
     padding: 7px 8px;
-  }
-
-  .notebook-brand span,
-  .notebook-actions kbd {
-    display: none;
-  }
-
-  .notebook-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  .notebook-actions output {
-    order: 3;
-    width: 100%;
   }
 }

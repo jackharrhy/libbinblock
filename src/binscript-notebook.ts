@@ -3,7 +3,7 @@ import { StreamLanguage } from '@codemirror/language';
 import { setDiagnostics } from '@codemirror/lint';
 import type { Diagnostic } from '@codemirror/lint';
 import { StateEffect, StateField } from '@codemirror/state';
-import { Decoration, EditorView, keymap, ViewPlugin, WidgetType } from '@codemirror/view';
+import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view';
 import type { DecorationSet, ViewUpdate } from '@codemirror/view';
 import { BinScriptError, compileBinScript } from './binscript-language.js';
 import type { BinScriptProjectionTarget } from './binscript-language.js';
@@ -281,32 +281,20 @@ function diagnosticFor(error: unknown, documentLength: number): Diagnostic {
 
 export interface RecipeNotebookOptions {
   parent: HTMLElement;
-  status: HTMLElement;
-  runButton: HTMLButtonElement;
-  resetButton: HTMLButtonElement;
   initialSource?: string;
 }
 
 export interface RecipeNotebook {
   view: EditorView;
-  run: () => Promise<void>;
-  reset: () => void;
 }
 
-export function createRecipeNotebook({
-  parent,
-  status,
-  runButton,
-  resetButton,
-  initialSource = STARTER_SOURCE,
-}: RecipeNotebookOptions): RecipeNotebook {
+export function createRecipeNotebook({ parent, initialSource = STARTER_SOURCE }: RecipeNotebookOptions): RecipeNotebook {
   let evaluationVersion = 0;
   let timer: number | undefined;
 
   const run = async (): Promise<void> => {
     const source = view.state.doc.toString();
     const version = ++evaluationVersion;
-    status.textContent = 'compiling...';
     try {
       const compiled = compileBinScript(source);
       const result = await compileRecipe(compiled.document, { maximumArtifacts: 2_000 });
@@ -325,12 +313,9 @@ export function createRecipeNotebook({
         };
       });
       view.dispatch({ effects: setStagePreviews.of(previews) }, setDiagnostics(view.state, []));
-      const totalArtifacts = [...result.stages.values()].reduce((total, artifacts) => total + artifacts.length, 0);
-      status.textContent = `${totalArtifacts} artifacts · ${previews.length} live stages`;
     } catch (error: unknown) {
       if (version !== evaluationVersion || source !== view.state.doc.toString()) return;
       view.dispatch({ effects: setStagePreviews.of([]) }, setDiagnostics(view.state, [diagnosticFor(error, view.state.doc.length)]));
-      status.textContent = errorSummary(error);
     }
   };
 
@@ -351,15 +336,6 @@ export function createRecipeNotebook({
       EditorView.updateListener.of((update) => {
         if (update.docChanged) scheduleRun();
       }),
-      keymap.of([
-        {
-          key: 'Mod-Enter',
-          run: () => {
-            void run();
-            return true;
-          },
-        },
-      ]),
       EditorView.theme({
         '&': { fontSize: '14px' },
         '.cm-content': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', padding: '18px 16px 96px' },
@@ -368,14 +344,7 @@ export function createRecipeNotebook({
     ],
   });
 
-  const reset = (): void => {
-    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: STARTER_SOURCE } });
-    void run();
-  };
-
-  runButton.addEventListener('click', () => void run());
-  resetButton.addEventListener('click', reset);
   void run();
 
-  return { view, run, reset };
+  return { view };
 }
