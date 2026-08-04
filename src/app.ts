@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import './style.css';
+import { createRecipeNotebook } from './binscript-notebook.js';
 import { DEFAULT_PALETTE, PRESETS } from './core.js';
 import type { PaletteEntry, PresetName } from './core.js';
 import { REFERENCE_SET_IMAGE_OPERATIONS } from './reference-set-operations.js';
@@ -294,6 +295,14 @@ const app = requiredElement('#app', HTMLElement);
 app.innerHTML = `
   <article class="shell">
     <header><h1>Bingen</h1><p>build a bin block collection from colors, image operations, and reusable recipes</p></header>
+    <section class="section notebook-section">
+      <h2><span>0</span> BinScript notebook <code>live recipe source</code></h2>
+      <div class="notebook-intro">
+        <div><strong>Code is the interface.</strong><p>Edit the recipe directly. Color and number controls rewrite their literals; every render stage compiles into an inline preview.</p></div>
+        <div class="notebook-actions"><button id="run-notebook" type="button">run <kbd>⌘↵</kbd></button><button id="reset-notebook" type="button">reset example</button><output id="notebook-status">starting...</output></div>
+      </div>
+      <div id="binscript-editor" aria-label="BinScript recipe editor"></div>
+    </section>
     <section class="section step">
       <h2><span>1</span> Choose base colors</h2>
       <div class="step-body"><p class="help">These colors feed flat-color and custom generation stages. Click a tile to include or exclude it, then add any extra hex colors.</p><div id="palette" class="palette-grid"></div><label class="custom-colours">additional colors <input id="custom-colours" placeholder="#123456, #abcdef"></label></div>
@@ -326,6 +335,12 @@ app.innerHTML = `
   </article>`;
 
 const paletteGrid = requiredElement('#palette', HTMLElement);
+createRecipeNotebook({
+  parent: requiredElement('#binscript-editor', HTMLElement),
+  status: requiredElement('#notebook-status', HTMLOutputElement),
+  runButton: requiredElement('#run-notebook', HTMLButtonElement),
+  resetButton: requiredElement('#reset-notebook', HTMLButtonElement),
+});
 const collectionCount = requiredElement('#collection-count', HTMLElement);
 const collectionStatus = requiredElement('#collection-status', HTMLOutputElement);
 const atlasPreview = requiredElement('#atlas-preview', HTMLCanvasElement);

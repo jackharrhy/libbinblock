@@ -78,6 +78,144 @@ h2 code {
   font-size: 14px;
   font-weight: normal;
 }
+.notebook-section h2 {
+  background: #12dbea;
+}
+.notebook-section h2 > span {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 6px;
+  border: 1px solid #111;
+  background: #fff;
+  font-family: ui-monospace, monospace;
+}
+.notebook-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #111;
+  background: #fffff5;
+}
+.notebook-intro p {
+  margin: 3px 0 0;
+  line-height: 1.35;
+}
+.notebook-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 7px;
+}
+.notebook-actions output {
+  min-width: 190px;
+  font:
+    12px ui-monospace,
+    monospace;
+  text-align: right;
+}
+.notebook-actions kbd {
+  font:
+    11px ui-monospace,
+    monospace;
+}
+#binscript-editor {
+  min-height: 520px;
+  background: #fff;
+}
+#binscript-editor .cm-editor {
+  height: 72vh;
+  min-height: 520px;
+  max-height: 720px;
+}
+#binscript-editor .cm-scroller {
+  overflow: auto;
+}
+.binscript-color-control,
+.binscript-number-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 7px;
+  padding: 1px 4px;
+  border: 1px solid #111;
+  background: #fff;
+  vertical-align: middle;
+}
+.binscript-color-control input {
+  width: 28px;
+  height: 19px;
+  border: 0;
+  padding: 0;
+}
+.binscript-number-control input[type='number'] {
+  width: 58px;
+  border: 0;
+  font:
+    11px ui-monospace,
+    monospace;
+}
+.binscript-number-control input[type='range'] {
+  width: 82px;
+}
+.binscript-number-control output {
+  min-width: 30px;
+  font:
+    10px ui-monospace,
+    monospace;
+}
+.binscript-stage-preview {
+  margin: 8px 18px 12px 46px;
+  border: 1px solid #111;
+  background-color: #e7e7e7;
+  background-image:
+    linear-gradient(45deg, #d4d4d4 25%, transparent 25%), linear-gradient(-45deg, #d4d4d4 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d4d4d4 75%), linear-gradient(-45deg, transparent 75%, #d4d4d4 75%);
+  background-position:
+    0 0,
+    0 5px,
+    5px -5px,
+    -5px 0;
+  background-size: 10px 10px;
+}
+.binscript-stage-preview-heading {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-bottom: 1px solid #111;
+  background: #fff;
+  font:
+    12px ui-monospace,
+    monospace;
+}
+.binscript-preview-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 76px;
+  padding: 8px;
+}
+canvas.binscript-preview-canvas {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #111;
+  background: transparent;
+}
+.binscript-preview-remainder {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px dashed #111;
+  background: #fff;
+  font:
+    13px ui-monospace,
+    monospace;
+}
 .workbench {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
@@ -399,5 +537,22 @@ canvas {
   }
   .generation-grid {
     grid-template-columns: 1fr;
+  }
+  .notebook-intro,
+  .notebook-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .notebook-actions output {
+    min-width: 0;
+    text-align: left;
+  }
+  #binscript-editor,
+  #binscript-editor .cm-editor {
+    height: 62vh;
+    min-height: 440px;
+  }
+  .binscript-stage-preview {
+    margin-left: 8px;
   }
 }
