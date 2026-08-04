@@ -1,0 +1,28 @@
+{
+  "name": "bingen",
+  "version": "0.1.0",
+  "description": "Build raster image collections from composable JSON recipes.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jackharrhy/bingen.git"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test",
+    "verify": "npm run test && npm run build",
+    "analyze:duplicates": "node scripts/analyze-duplicates.mjs"
+  },
+  "devDependencies": {
+    "canvas": "^3.2.0",
+    "esbuild": "^0.27.2",
+    "jszip": "^3.10.1"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}
