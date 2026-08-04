@@ -15,20 +15,46 @@ export const STARTER_SOURCE = `import "bingen/basic"
 size := 64
 
 colors := palette(
-  coral: #ff6030,
-  cyan: #10d9d2,
+  col-black-1: #000000,
+  col-black-2: #808080,
+  col-black-3: #c0c0c0,
+  col-black-4: #ffffff,
+  col-blue-lo: #000080,
+  col-blue-hi: #0000ff,
+  col-green-lo: #008000,
+  col-green-hi: #00ff00,
+  col-cyan-lo: #008080,
+  col-cyan-hi: #00ffff,
+  col-red-lo: #800000,
+  col-red-hi: #ff0000,
+  col-yellow-lo: #808000,
+  col-yellow-hi: #ffff00,
+  col-pink-lo: #800080,
+  col-pink-hi: #ff00ff,
 )
 
 blocks := colors.map(fill).size(size)
 blocks
-light := lg(
-  135deg,
-  transparent 0%,
-  #ffffff 100%,
-).size(size)
-light
-tiles := blocks.mask(light)
-tiles
+
+top-down := lg(180deg, white, transparent).size(size)
+top-down
+top-down-colors := blocks.mask(top-down)
+top-down-colors
+
+bottom-up := lg(0deg, white, transparent).size(size)
+bottom-up
+bottom-up-colors := blocks.mask(bottom-up)
+bottom-up-colors
+
+left-right := lg(90deg, white, transparent).size(size)
+left-right
+left-right-colors := blocks.mask(left-right)
+left-right-colors
+
+right-left := lg(270deg, white, transparent).size(size)
+right-left
+right-left-colors := blocks.mask(right-left)
+right-left-colors
 `;
 
 export const STARTER_RECIPE = compileBinScript(STARTER_SOURCE).document;

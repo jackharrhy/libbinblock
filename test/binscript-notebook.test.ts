@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BinScriptError, compileBinScript } from '../src/binscript-language.js';
 import { errorSummary, recipeProjectionTargets, STARTER_RECIPE, STARTER_SOURCE } from '../src/binscript-notebook.js';
+import { DEFAULT_PALETTE } from '../src/core.js';
 import { compileRecipe } from '../src/recipe-executor.js';
 
 test('starter BinScript lowers and compiles dependent image bindings', async () => {
@@ -9,12 +10,36 @@ test('starter BinScript lowers and compiles dependent image bindings', async () 
   assert.deepEqual(
     [...result.stages].map(([stage, artifacts]) => [stage, artifacts.length]),
     [
-      ['blocks', 2],
-      ['light', 1],
-      ['tiles', 2],
+      ['blocks', 16],
+      ['top-down', 1],
+      ['top-down-colors', 16],
+      ['bottom-up', 1],
+      ['bottom-up-colors', 16],
+      ['left-right', 1],
+      ['left-right-colors', 16],
+      ['right-left', 1],
+      ['right-left-colors', 16],
     ],
   );
-  assert.equal(result.outputs.length, 5);
+  assert.equal(result.outputs.length, 84);
+  assert.deepEqual(
+    result.stages.get('blocks')?.map((artifact) => [artifact.key, artifact.properties.color]),
+    DEFAULT_PALETTE.map(([id, color]) => [id.replaceAll('_', '-'), color]),
+  );
+});
+
+test('starter cardinal gradients run in their named directions', async () => {
+  const result = await compileRecipe(STARTER_RECIPE);
+  const alpha = (stage: string, x: number, y: number): number => {
+    const image = result.stages.get(stage)?.[0]?.image;
+    assert.ok(image);
+    return image.pixels[(y * image.width + x) * 4 + 3];
+  };
+
+  assert.deepEqual([alpha('top-down', 32, 0), alpha('top-down', 32, 63)], [255, 0]);
+  assert.deepEqual([alpha('bottom-up', 32, 0), alpha('bottom-up', 32, 63)], [0, 255]);
+  assert.deepEqual([alpha('left-right', 0, 32), alpha('left-right', 63, 32)], [255, 0]);
+  assert.deepEqual([alpha('right-left', 0, 32), alpha('right-left', 63, 32)], [0, 255]);
 });
 
 test('notebook projections retain exact source ranges for controls and stages', () => {
@@ -25,15 +50,25 @@ test('notebook projections retain exact source ranges for controls and stages', 
 
   assert.deepEqual(
     stages.map((target) => target.stageId),
-    ['blocks', 'light', 'tiles'],
+    [
+      'blocks',
+      'top-down',
+      'top-down-colors',
+      'bottom-up',
+      'bottom-up-colors',
+      'left-right',
+      'left-right-colors',
+      'right-left',
+      'right-left-colors',
+    ],
   );
   assert.deepEqual(
     colors.map((target) => STARTER_SOURCE.slice(target.from, target.to)),
-    ['#ff6030', '#10d9d2', '#ffffff'],
+    DEFAULT_PALETTE.map(([, color]) => color),
   );
   assert.deepEqual(
     numbers.map((target) => STARTER_SOURCE.slice(target.from, target.to)),
-    ['64', '135deg'],
+    ['64', '180deg', '0deg', '90deg', '270deg'],
   );
   for (const target of targets) assert.ok(target.from >= 0 && target.to <= STARTER_SOURCE.length && target.from < target.to);
   for (const target of stages) assert.equal(target.at, target.to);
