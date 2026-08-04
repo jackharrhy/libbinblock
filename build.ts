@@ -142,9 +142,9 @@ const html = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A browser tool for previewing and exporting bin block image collections.">
+  <meta name="description" content="A live BinScript notebook for composing deterministic image collections.">
   <link rel="icon" href="data:,">
-  <title>Bingen</title>
+  <title>BinScript · Bingen</title>
   <style>${styles}</style>
 </head>
 <body>

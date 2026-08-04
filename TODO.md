@@ -8,8 +8,8 @@
 - Stages emit ordered artifact sets; downstream stages can consume those sets through `forEach` bindings.
 - Stage inputs support expression-based filtering and keyed selection in addition to Cartesian expansion.
 - The compiler rejects invalid operations, references, dependency cycles, duplicate keys, duplicate paths, unsafe paths, and excessive expansion.
-- The standalone browser build previews and exports all 4,312 default images.
-- Executable family recipes and their JSON Schema are included in collection ZIPs.
+- The standalone browser build is now a full-screen BinScript notebook; the previous form, atlas, and ZIP interface has been removed.
+- The exact 4,312-image family recipes remain available to the compiler but still need to be exposed through BinScript imports and one visible default program.
 
 ## Family status
 
@@ -44,14 +44,10 @@
 
 ## Frontend work
 
-- Replace the hard-coded `STAGES` catalogue with metadata derived from recipe definitions and schemas.
-- Make the visual form and raw JSON editor two views of the same `bin-block-recipe/v1` document.
-- Replace archive-group selection and `OUTPUT_PREFIXES` routing with recipe outputs.
-- Make atlas preview materialize lazy recipe artifact plans for raster-only families instead of using the embedded reference atlas as an optimization.
-- Replace `buildCollection()` orchestration with a generic lazy recipe package writer.
-- Add operation-stack editing, parameter references, reusable definitions, validation locations, and output provenance inspection.
-- Add undo/redo, snapshots, recipe import/export, asset management, and output-count warnings.
-- Add accessible non-drag reorder controls and mobile operation editing.
+- Treat BinScript as the only primary browser interface; JSON remains compiler IR and an optional inspection view.
+- Follow the language, tooling, and full-pipeline plan in [`BINSCRIPT.md`](BINSCRIPT.md).
+- Open the complete default pipeline as visible BinScript source once lazy collection planning and reference-set imports are available.
+- Drive atlas and package exports from explicit BinScript output expressions rather than parallel frontend orchestration.
 
 ## Formula recovery
 

@@ -362,9 +362,7 @@ export function createRecipeNotebook({
       ]),
       EditorView.theme({
         '&': { fontSize: '14px' },
-        '.cm-content': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', padding: '14px 0 80px' },
-        '.cm-gutters': { backgroundColor: '#f6f6f1', borderRight: '1px solid #111' },
-        '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: '#e9ffff' },
+        '.cm-content': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', padding: '18px 16px 96px' },
         '&.cm-focused': { outline: 'none' },
       }),
     ],
