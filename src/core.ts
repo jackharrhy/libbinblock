@@ -1,3 +1,13 @@
+export type RGB = readonly [red: number, green: number, blue: number];
+export type PixelBuffer = Uint8Array | Uint8ClampedArray;
+export type GradientAlpha = (x: number, y: number) => number;
+
+export interface GradientPreset {
+  label: string;
+  archiveName: string;
+  alpha: GradientAlpha;
+}
+
 export const PRESETS = {
   'top-down': { label: 'Top to bottom', archiveName: 'grad00', alpha: (x, y) => 1 - y },
   'bottom-up': { label: 'Bottom to top', archiveName: 'grad01', alpha: (x, y) => y },
@@ -15,30 +25,55 @@ export const PRESETS = {
   },
   diagonal: { label: 'Diagonal', archiveName: 'grad06', alpha: (x, y) => 1 - (x + y) / 2 },
   corner: { label: 'Corner falloff', archiveName: 'grad07', alpha: (x, y) => 1 - Math.max(x, y) },
-};
+} as const satisfies Record<string, GradientPreset>;
 
-export const DEFAULT_PALETTE = [
-  ['col_black_1', '#000000'], ['col_black_2', '#808080'], ['col_black_3', '#c0c0c0'], ['col_black_4', '#ffffff'],
-  ['col_blue_lo', '#000080'], ['col_blue_hi', '#0000ff'], ['col_green_lo', '#008000'], ['col_green_hi', '#00ff00'],
-  ['col_cyan_lo', '#008080'], ['col_cyan_hi', '#00ffff'], ['col_red_lo', '#800000'], ['col_red_hi', '#ff0000'],
-  ['col_yellow_lo', '#808000'], ['col_yellow_hi', '#ffff00'], ['col_pink_lo', '#800080'], ['col_pink_hi', '#ff00ff'],
+export type PresetName = keyof typeof PRESETS;
+export type PaletteEntry = readonly [id: string, color: string];
+
+export const DEFAULT_PALETTE: readonly PaletteEntry[] = [
+  ['col_black_1', '#000000'],
+  ['col_black_2', '#808080'],
+  ['col_black_3', '#c0c0c0'],
+  ['col_black_4', '#ffffff'],
+  ['col_blue_lo', '#000080'],
+  ['col_blue_hi', '#0000ff'],
+  ['col_green_lo', '#008000'],
+  ['col_green_hi', '#00ff00'],
+  ['col_cyan_lo', '#008080'],
+  ['col_cyan_hi', '#00ffff'],
+  ['col_red_lo', '#800000'],
+  ['col_red_hi', '#ff0000'],
+  ['col_yellow_lo', '#808000'],
+  ['col_yellow_hi', '#ffff00'],
+  ['col_pink_lo', '#800080'],
+  ['col_pink_hi', '#ff00ff'],
 ];
 
-export function parseHex(value) {
+export function parseHex(value: string): RGB {
   const hex = value.replace(/^#/, '');
   if (!/^[\da-f]{6}$/i.test(hex)) throw new Error(`Invalid RGB color: ${value}`);
-  return [0, 2, 4].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16));
+  return [Number.parseInt(hex.slice(0, 2), 16), Number.parseInt(hex.slice(2, 4), 16), Number.parseInt(hex.slice(4, 6), 16)];
 }
 
-export function toHex([red, green, blue]) {
+export function toHex([red, green, blue]: RGB): string {
   return `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 }
 
-function rotate(x, y, turns) {
+function rotate(x: number, y: number, turns: number): readonly [number, number] {
   if (turns === 1) return [1 - y, x];
   if (turns === 2) return [1 - x, 1 - y];
   if (turns === 3) return [y, 1 - x];
   return [x, y];
+}
+
+export interface RenderBlockOptions {
+  width?: number;
+  height?: number;
+  base?: string;
+  overlay?: string;
+  opacity?: number;
+  preset?: PresetName;
+  rotation?: number;
 }
 
 export function renderBlock({
@@ -49,7 +84,7 @@ export function renderBlock({
   opacity = 1,
   preset = 'radial-in',
   rotation = 0,
-}) {
+}: RenderBlockOptions = {}): Uint8ClampedArray {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
     throw new Error('Dimensions must be positive integers.');
   }
@@ -77,7 +112,21 @@ export function renderBlock({
   return pixels;
 }
 
-export function renderMask({ width = 64, height = 64, preset = 'radial-in', rotation = 0, white = false }) {
+export interface RenderMaskOptions {
+  width?: number;
+  height?: number;
+  preset?: PresetName;
+  rotation?: number;
+  white?: boolean;
+}
+
+export function renderMask({
+  width = 64,
+  height = 64,
+  preset = 'radial-in',
+  rotation = 0,
+  white = false,
+}: RenderMaskOptions = {}): Uint8ClampedArray {
   if (!(preset in PRESETS)) throw new Error(`Unknown gradient preset: ${preset}`);
   const pixels = new Uint8ClampedArray(width * height * 4);
   const turns = ((rotation % 4) + 4) % 4;

@@ -15,20 +15,20 @@
 
 `Pipeline` means both atlas preview and ZIP export use `compileRecipe()` for that family.
 
-| Semantic family | Images | Recipe | Frontend | Exactness | Remaining work |
-| --- | ---: | --- | --- | --- | --- |
-| `flat-color` | 16+ | Analytic | Pipeline | Pixel-exact | Add RGBA values and configurable dimensions |
-| `gradient-masks` | 19 | Analytic + one raster | Pipeline | Alpha-exact `00-17`; raster-exact `18` | Replace `reference-set/alpha-map` with generic geometry parameters and preserve historical white RGB quantization where required |
-| `gradient-variants` | 1,202 | Executable raster recipe | Recipe-backed atlas/byte passthrough | Raster-exact | Model palette × field × overlay × opacity × rotation; recover high-precision `gradNN` fields |
-| `downscaled` | 88 | Composable | Pipeline | Pixel-exact at default | Feed canonical gradient-variant artifacts instead of pinned 8×8 sources after high-precision fields are recovered |
-| `foreground-alpha` | 22 | Two-stage composable | Pipeline | Raster-exact default; configurable tint | Replace pinned alpha fields with analytic or imported mask stages where possible |
-| `foreground-composites` | 815 | Three-stage dependent recipe | Pipeline | Raster-exact default; custom colors match recovered renderer | Replace pinned output fallbacks as the remaining one-channel differences are resolved |
-| `elliptical-gradients` | 65 | Executable transformed-raster recipe | Pipeline | Raster-exact default | Encode each organic asset as multi-stop ellipse, axial field, raster layer, or ordered composition |
-| `layer-compositions` | 1,061 | Executable raster recipe | Recipe-backed atlas/byte passthrough | Raster-exact | Convert source maps, fills, crop, offset, and source-over rules into recipes; recover special `0500*` and modding `1901-1917` |
-| `sans-glyphs` | 26 | Executable two-color recipe | Pipeline | Raster-exact default | Identify and pin font, face, rasterization, baseline, hinting, and no-AA behavior; then use `glyph` adapter |
-| `serif-glyphs` | 26 | Executable two-color recipe | Pipeline | Raster-exact default | Identify source font and layout; encode overlays as composition operations |
-| `ordered-results` | 972 | Alias + exception recipe | Recipe-backed atlas/byte passthrough | 960 pixel aliases; 12 raster exceptions | Feed aliases from analytic gradient variants once that family is migrated |
-| Custom permutations | Variable | Four-stage analytic recipe | Pipeline | Deterministic | Expose its operation structure through the future recipe editor |
+| Semantic family         |   Images | Recipe                               | Frontend                             | Exactness                                                    | Remaining work                                                                                                                   |
+| ----------------------- | -------: | ------------------------------------ | ------------------------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `flat-color`            |      16+ | Analytic                             | Pipeline                             | Pixel-exact                                                  | Add RGBA values and configurable dimensions                                                                                      |
+| `gradient-masks`        |       19 | Analytic + one raster                | Pipeline                             | Alpha-exact `00-17`; raster-exact `18`                       | Replace `reference-set/alpha-map` with generic geometry parameters and preserve historical white RGB quantization where required |
+| `gradient-variants`     |    1,202 | Executable raster recipe             | Recipe-backed atlas/byte passthrough | Raster-exact                                                 | Model palette × field × overlay × opacity × rotation; recover high-precision `gradNN` fields                                     |
+| `downscaled`            |       88 | Composable                           | Pipeline                             | Pixel-exact at default                                       | Feed canonical gradient-variant artifacts instead of pinned 8×8 sources after high-precision fields are recovered                |
+| `foreground-alpha`      |       22 | Two-stage composable                 | Pipeline                             | Raster-exact default; configurable tint                      | Replace pinned alpha fields with analytic or imported mask stages where possible                                                 |
+| `foreground-composites` |      815 | Three-stage dependent recipe         | Pipeline                             | Raster-exact default; custom colors match recovered renderer | Replace pinned output fallbacks as the remaining one-channel differences are resolved                                            |
+| `elliptical-gradients`  |       65 | Executable transformed-raster recipe | Pipeline                             | Raster-exact default                                         | Encode each organic asset as multi-stop ellipse, axial field, raster layer, or ordered composition                               |
+| `layer-compositions`    |    1,061 | Executable raster recipe             | Recipe-backed atlas/byte passthrough | Raster-exact                                                 | Convert source maps, fills, crop, offset, and source-over rules into recipes; recover special `0500*` and modding `1901-1917`    |
+| `sans-glyphs`           |       26 | Executable two-color recipe          | Pipeline                             | Raster-exact default                                         | Identify and pin font, face, rasterization, baseline, hinting, and no-AA behavior; then use `glyph` adapter                      |
+| `serif-glyphs`          |       26 | Executable two-color recipe          | Pipeline                             | Raster-exact default                                         | Identify source font and layout; encode overlays as composition operations                                                       |
+| `ordered-results`       |      972 | Alias + exception recipe             | Recipe-backed atlas/byte passthrough | 960 pixel aliases; 12 raster exceptions                      | Feed aliases from analytic gradient variants once that family is migrated                                                        |
+| Custom permutations     | Variable | Four-stage analytic recipe           | Pipeline                             | Deterministic                                                | Expose its operation structure through the future recipe editor                                                                  |
 
 ## Compiler work
 

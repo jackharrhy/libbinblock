@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluateExpression } from '../src/recipe-expressions.js';
+import type { Expression } from '../src/recipe-schema.js';
 
 test('Mapbox-style expressions resolve variables, object properties, and literal arrays', () => {
   const context = {
@@ -13,8 +14,12 @@ test('Mapbox-style expressions resolve variables, object properties, and literal
 });
 
 test('case, match, let, and deterministic string operators compose', () => {
-  const expression = ['let', 'number', 7,
-    ['concat',
+  const expression: Expression = [
+    'let',
+    'number',
+    7,
+    [
+      'concat',
       ['match', ['var', 'number'], 7, 'layer-', 'other-'],
       ['pad', ['to-string', ['var', 'number']], 3, '0'],
       ['case', ['==', ['var', 'number'], 7], '.png', '.bin'],

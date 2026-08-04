@@ -81,19 +81,19 @@ Reusable definitions accept scalar parameters:
 
 `createReferenceSetRasterRecipe()` maps all 4,312 embedded files into a `reference-set-exact/v1` recipe. Each family has its own stage, and every source file is pinned as a raster asset.
 
-| Stage | Initial source | Analytic replacement |
-| --- | --- | --- |
-| `flat-color` | Raster baseline | `fill` over palette values |
-| `gradient-masks` | Maps `00-18` | Generic gradients, legacy maps, raster map `18` |
-| `gradient-variants` | Historic raster fields | Base set x mask set x overlay set x rotation |
-| `downscaled` | Raster baseline | Upstream variants, rotation, and Lanczos3 resize |
-| `foreground-alpha` | Raster baseline | Gradient/mask followed by `set-visible-rgb` |
-| `foreground-composites` | Raster baseline | Base set x foreground-alpha set, then `composite` |
-| `elliptical-gradients` | Organic raster baseline | Multi-stop ellipse definitions and compositions |
-| `layer-compositions` | Out4 raster baseline | Ordered fills, masks, crops, offsets, and composites |
-| `sans-glyphs` | Glyph-mask raster baseline | Font asset x glyph values, then glyph renderer |
-| `serif-glyphs` | Glyph-mask raster baseline | Font asset x glyph values, then glyph renderer |
-| `ordered-results` | Raster baseline | Alias stages targeting canonical variant artifacts |
+| Stage                   | Initial source             | Analytic replacement                                 |
+| ----------------------- | -------------------------- | ---------------------------------------------------- |
+| `flat-color`            | Raster baseline            | `fill` over palette values                           |
+| `gradient-masks`        | Maps `00-18`               | Generic gradients, legacy maps, raster map `18`      |
+| `gradient-variants`     | Historic raster fields     | Base set x mask set x overlay set x rotation         |
+| `downscaled`            | Raster baseline            | Upstream variants, rotation, and Lanczos3 resize     |
+| `foreground-alpha`      | Raster baseline            | Gradient/mask followed by `set-visible-rgb`          |
+| `foreground-composites` | Raster baseline            | Base set x foreground-alpha set, then `composite`    |
+| `elliptical-gradients`  | Organic raster baseline    | Multi-stop ellipse definitions and compositions      |
+| `layer-compositions`    | Out4 raster baseline       | Ordered fills, masks, crops, offsets, and composites |
+| `sans-glyphs`           | Glyph-mask raster baseline | Font asset x glyph values, then glyph renderer       |
+| `serif-glyphs`          | Glyph-mask raster baseline | Font asset x glyph values, then glyph renderer       |
+| `ordered-results`       | Raster baseline            | Alias stages targeting canonical variant artifacts   |
 
 The reference profile provides a raster-backed stage for every family. Family IDs and output paths are the stable interface for downstream stages. Set-specific operations use the `reference-set/` namespace.
 
@@ -111,7 +111,7 @@ The browser preview and ZIP exporter use the same recipe executor for these fami
 - `ordered-results` contains 960 first-class pixel aliases and 12 explicit raster exceptions.
 - Custom permutations are a four-stage analytic recipe containing flat sources, masks, variants, and recipe aliases.
 
-`src/app.js` contains no family-specific pixel renderers. Unresolved families use raster-backed stages or namespaced compatibility operations.
+`src/app.ts` contains no family-specific pixel renderers. Unresolved families use raster-backed stages or namespaced compatibility operations.
 
 Collection ZIPs include the effective family documents under `recipes/`, plus `recipes/bin-block-recipe-v1.schema.json`. The manifest identifies each recipe and render profile. The documents can be inspected and validated independently; compiling raster-backed recipes also requires the corresponding source assets and a raster resolver.
 

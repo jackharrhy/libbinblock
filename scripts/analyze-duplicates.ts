@@ -5,30 +5,32 @@ import { join, relative } from 'node:path';
 const archiveRoot = join(process.cwd(), 'reference-set');
 const reportPath = join(process.cwd(), 'DUPLICATES.md');
 
-async function walk(directory) {
+async function walk(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
-  const paths = await Promise.all(entries.map(async (entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) return walk(path);
-    return entry.name.toLowerCase().endsWith('.png') ? [path] : [];
-  }));
+  const paths: string[][] = await Promise.all(
+    entries.map(async (entry): Promise<string[]> => {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return walk(path);
+      return entry.name.toLowerCase().endsWith('.png') ? [path] : [];
+    }),
+  );
   return paths.flat();
 }
 
-const paths = await walk(archiveRoot);
-const groups = new Map();
+const paths: string[] = await walk(archiveRoot);
+const groups = new Map<string, string[]>();
 for (const path of paths) {
   const bytes = await readFile(path);
   const hash = createHash('md5').update(bytes).digest('hex');
   groups.set(hash, [...(groups.get(hash) ?? []), relative(archiveRoot, path)]);
 }
 
-const duplicates = [...groups.entries()]
+const duplicates: [string, string[]][] = [...groups.entries()]
   .filter(([, files]) => files.length > 1)
   .sort(([, left], [, right]) => right.length - left.length || left[0].localeCompare(right[0]));
-const duplicateFiles = duplicates.reduce((total, [, files]) => total + files.length, 0);
-const report = [
-  '# Default Set Exact Duplicate Report',
+const duplicateFiles: number = duplicates.reduce((total, [, files]) => total + files.length, 0);
+const report: string = [
+  '# Reference Set Exact Duplicate Report',
   '',
   `Generated: ${new Date().toISOString()}`,
   '',

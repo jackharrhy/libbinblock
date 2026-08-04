@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCanvas, loadImage } from 'canvas';
+import type { Canvas } from 'canvas';
 import { readFile } from 'node:fs/promises';
 import { renderBlock, renderMask } from '../src/core.js';
 
-function rgbaFromCanvas(canvas) {
+function rgbaFromCanvas(canvas: Canvas): Uint8ClampedArray {
   return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
 }
 

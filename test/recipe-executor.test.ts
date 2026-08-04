@@ -1,15 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { compileRecipe } from '../src/recipe-executor.js';
+import type { JsonValue, RecipeDocument } from '../src/recipe-schema.js';
 
-const COLORS = [
+interface ColorFixture {
+  [key: string]: JsonValue;
+  id: string;
+  value: string;
+}
+
+const COLORS: ColorFixture[] = [
   { id: 'red', value: '#ff0000' },
   { id: 'blue', value: '#0000ff' },
 ];
 
-function stagedRecipe() {
+function stagedRecipe(): RecipeDocument {
   return {
     format: 'bin-block-recipe/v1',
+    profile: 'numeric-srgb/v1',
+    metadata: {},
+    values: {},
+    assets: {},
     definitions: {
       'colored-block': {
         parameters: { color: '#000000' },
@@ -24,7 +35,7 @@ function stagedRecipe() {
         key: ['get', 'key', ['var', 'source']],
         path: ['concat', 'downscaled/', ['get', 'key', ['var', 'source']], '.png'],
         properties: { sourceStage: ['get', 'stage', ['var', 'source']] },
-        image: { op: 'resize', source: { op: 'input', binding: 'source' }, width: 1, height: 1 },
+        image: { op: 'resize', source: { op: 'input', binding: 'source' }, width: 1, height: 1, filter: 'lanczos3' },
       },
       {
         type: 'render',
@@ -46,6 +57,7 @@ function stagedRecipe() {
         identity: 'pixels',
         key: ['get', 'key', ['var', 'target']],
         path: ['concat', 'aliases/', ['get', 'key', ['var', 'target']], '.png'],
+        properties: {},
       },
     ],
     outputs: [{ stage: 'downscaled' }, { stage: 'aliases' }],
@@ -54,12 +66,10 @@ function stagedRecipe() {
 
 test('stages consume upstream artifact sets in stable dependency order', async () => {
   const result = await compileRecipe(stagedRecipe());
-  assert.deepEqual(result.outputs.map((output) => output.path), [
-    'downscaled/red.png',
-    'downscaled/blue.png',
-    'aliases/red.png',
-    'aliases/blue.png',
-  ]);
+  assert.deepEqual(
+    result.outputs.map((output) => output.path),
+    ['downscaled/red.png', 'downscaled/blue.png', 'aliases/red.png', 'aliases/blue.png'],
+  );
   assert.deepEqual([...result.outputs[0].image.pixels], [255, 0, 0, 255]);
   assert.deepEqual([...result.outputs[1].image.pixels], [0, 0, 255, 255]);
   assert.deepEqual(result.outputs[0].properties, { sourceStage: 'base-colors' });
@@ -78,16 +88,22 @@ test('multiple upstream stage axes form a deterministic Cartesian product', asyn
     },
     key: ['concat', ['get', 'key', ['var', 'left']], '-', ['get', 'key', ['var', 'right']]],
     path: ['concat', 'combinations/', ['get', 'key', ['var', 'left']], '-', ['get', 'key', ['var', 'right']], '.png'],
+    properties: {},
     image: {
       op: 'composite',
       destination: { op: 'input', binding: 'left' },
       source: { op: 'input', binding: 'right' },
+      offsetX: 0,
+      offsetY: 0,
       opacity: 0.5,
     },
   });
   recipe.outputs = [{ stage: 'combinations' }];
   const result = await compileRecipe(recipe);
-  assert.deepEqual(result.outputs.map((output) => output.key), ['red-red', 'red-blue', 'blue-red', 'blue-blue']);
+  assert.deepEqual(
+    result.outputs.map((output) => output.key),
+    ['red-red', 'red-blue', 'blue-red', 'blue-blue'],
+  );
 });
 
 test('output paths and artifact counts are guarded during compilation', async () => {
@@ -101,7 +117,10 @@ test('stage bindings shadow document values with the same name', async () => {
   const recipe = stagedRecipe();
   recipe.values = { color: { id: 'wrong', value: '#000000' } };
   const result = await compileRecipe(recipe);
-  assert.deepEqual(result.stages.get('base-colors').map((artifact) => artifact.key), ['red', 'blue']);
+  assert.deepEqual(
+    result.stages.get('base-colors')?.map((artifact) => artifact.key),
+    ['red', 'blue'],
+  );
 });
 
 test('stage axes filter upstream artifact sets using earlier bindings', async () => {
@@ -120,8 +139,13 @@ test('stage axes filter upstream artifact sets using earlier bindings', async ()
     target: { binding: 'target' },
     key: ['get', 'key', ['var', 'target']],
     path: ['concat', 'selected/', ['get', 'key', ['var', 'target']], '.png'],
+    identity: 'pixels',
+    properties: {},
   });
   recipe.outputs = [{ stage: 'selected-aliases' }];
   const result = await compileRecipe(recipe);
-  assert.deepEqual(result.outputs.map((output) => output.key), ['blue']);
+  assert.deepEqual(
+    result.outputs.map((output) => output.key),
+    ['blue'],
+  );
 });

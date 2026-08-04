@@ -1,6 +1,75 @@
-import { RECIPE_FORMAT } from './recipe-schema.js';
+import type * as z from 'zod';
+import { RECIPE_FORMAT, RecipeDocumentSchema, RenderStageSchema, type JsonValue, type RasterAsset } from './recipe-schema.js';
 import { getRedPrintArchiveRecipe, getRedPrintRecipe, getResultAliasMapping, RED_FG_ALPHA_SOURCE_SPECS } from './legacy.js';
-import { PRESETS } from './core.js';
+import { PRESETS, type PaletteEntry, type PresetName } from './core.js';
+
+type RecipeInput = z.input<typeof RecipeDocumentSchema>;
+type RenderStageInput = z.input<typeof RenderStageSchema>;
+
+export type ReferenceSetRecipeInput = RecipeInput & {
+  metadata: Record<string, JsonValue> & { name: string; imageCount: number };
+};
+
+export interface ReferenceSetFile {
+  path: string;
+  sha256?: string;
+}
+
+export interface ReferenceSetArchive {
+  files: readonly ReferenceSetFile[];
+}
+
+export interface ReferenceSetFamilySource {
+  prefix: string;
+  output: string;
+}
+
+export interface ReferenceSetRecipeFamily {
+  id: string;
+  sources: readonly ReferenceSetFamilySource[];
+}
+
+export interface ReferenceSetRasterRecipeOptions {
+  families?: readonly ReferenceSetRecipeFamily[];
+}
+
+export interface ColorRecipeOptions {
+  color?: string;
+}
+
+export interface DownscaledRecipeOptions extends ColorRecipeOptions {
+  size?: number;
+}
+
+export interface TwoColorFamilyRecipeOptions {
+  familyId: string;
+  sourceForeground: string;
+  sourceBackground: string;
+  foreground: string;
+  background: string;
+}
+
+export interface PermutationOverlay extends Record<string, JsonValue> {
+  name: string;
+  colour: string;
+}
+
+interface MappedFamilyFile {
+  family: string;
+  path: string;
+}
+
+interface RasterFamilyValue extends Record<string, JsonValue> {
+  asset: string;
+  key: string;
+  path: string;
+  sourcePath: string;
+}
+
+interface OrderedSource extends Record<string, JsonValue> {
+  asset: string;
+  key: string;
+}
 
 export const REFERENCE_SET_RECIPE_FAMILIES = [
   { id: 'flat-color', sources: [{ prefix: 'col/', output: 'flat-color/' }] },
@@ -21,37 +90,41 @@ export const REFERENCE_SET_RECIPE_FAMILIES = [
   { id: 'sans-glyphs', sources: [{ prefix: 'No AA 64px Black+White/', output: 'glyphs/sans-serif/' }] },
   { id: 'serif-glyphs', sources: [{ prefix: 'New folder/', output: 'glyphs/serif/' }] },
   { id: 'ordered-results', sources: [{ prefix: 'result/', output: 'ordered-results/' }] },
-];
+] as const satisfies readonly ReferenceSetRecipeFamily[];
 
-function familyFile(families, path) {
+function familyFile(families: readonly ReferenceSetRecipeFamily[], path: string): MappedFamilyFile | undefined {
   for (const family of families) {
     for (const source of family.sources) {
-      if (path.startsWith(source.prefix)) return {
-        family: family.id,
-        path: `${source.output}${path.slice(source.prefix.length)}`,
-      };
+      if (path.startsWith(source.prefix))
+        return {
+          family: family.id,
+          path: `${source.output}${path.slice(source.prefix.length)}`,
+        };
     }
   }
   return undefined;
 }
 
-export function createReferenceSetRasterRecipe(archive, { families = REFERENCE_SET_RECIPE_FAMILIES } = {}) {
-  const assets = {};
-  const filesByFamily = new Map(families.map((family) => [family.id, []]));
+export function createReferenceSetRasterRecipe(
+  archive: ReferenceSetArchive,
+  { families = REFERENCE_SET_RECIPE_FAMILIES }: ReferenceSetRasterRecipeOptions = {},
+): ReferenceSetRecipeInput {
+  const assets: Record<string, RasterAsset> = {};
+  const filesByFamily = new Map<string, RasterFamilyValue[]>(families.map((family) => [family.id, []]));
   archive.files.forEach((file, index) => {
     const mapped = familyFile(families, file.path);
     if (!mapped) throw new Error(`No reference-set recipe family maps archive path: ${file.path}`);
     const asset = `reference-set-raster-${String(index).padStart(4, '0')}`;
     assets[asset] = { type: 'raster', path: file.path, ...(file.sha256 ? { sha256: file.sha256 } : {}) };
-    filesByFamily.get(mapped.family).push({ asset, key: file.path, path: mapped.path, sourcePath: file.path });
+    filesByFamily.get(mapped.family)?.push({ asset, key: file.path, path: mapped.path, sourcePath: file.path });
   });
 
-  const stages = families
-    .filter((family) => filesByFamily.get(family.id).length)
+  const stages: RenderStageInput[] = families
+    .filter((family) => filesByFamily.get(family.id)?.length)
     .map((family) => ({
       type: 'render',
       id: family.id,
-      forEach: { file: { source: 'values', values: filesByFamily.get(family.id) } },
+      forEach: { file: { source: 'values', values: filesByFamily.get(family.id) ?? [] } },
       key: ['get', 'key', ['var', 'file']],
       path: ['get', 'path', ['var', 'file']],
       properties: {
@@ -75,39 +148,44 @@ export function createReferenceSetRasterRecipe(archive, { families = REFERENCE_S
   };
 }
 
-export function createFlatColorRecipe(palette) {
+export function createFlatColorRecipe(palette: readonly PaletteEntry[]): ReferenceSetRecipeInput {
   return {
     format: RECIPE_FORMAT,
     metadata: { name: 'Flat colors', imageCount: palette.length },
-    stages: [{
-      type: 'render',
-      id: 'flat-color',
-      forEach: {
-        color: {
-          source: 'values',
-          values: palette.map(([id, value]) => ({ id, value })),
+    stages: [
+      {
+        type: 'render',
+        id: 'flat-color',
+        forEach: {
+          color: {
+            source: 'values',
+            values: palette.map(([id, value]) => ({ id, value })),
+          },
+        },
+        key: ['get', 'id', ['var', 'color']],
+        path: ['concat', 'flat-color/', ['get', 'id', ['var', 'color']], '.png'],
+        properties: {
+          color: ['get', 'value', ['var', 'color']],
+          reproduction: 'analytic',
+        },
+        image: {
+          op: 'fill',
+          width: 64,
+          height: 64,
+          color: ['get', 'value', ['var', 'color']],
         },
       },
-      key: ['get', 'id', ['var', 'color']],
-      path: ['concat', 'flat-color/', ['get', 'id', ['var', 'color']], '.png'],
-      properties: {
-        color: ['get', 'value', ['var', 'color']],
-        reproduction: 'analytic',
-      },
-      image: {
-        op: 'fill',
-        width: 64,
-        height: 64,
-        color: ['get', 'value', ['var', 'color']],
-      },
-    }],
+    ],
     outputs: [{ stage: 'flat-color' }],
   };
 }
 
-export function createDownscaledRecipe(archive, { color = '#0000ff', size = 8 } = {}) {
+export function createDownscaledRecipe(
+  archive: ReferenceSetArchive,
+  { color = '#0000ff', size = 8 }: DownscaledRecipeOptions = {},
+): ReferenceSetRecipeInput {
   const files = archive.files.filter((file) => file.path.startsWith('blue 64-8 24 bit/'));
-  const assets = {};
+  const assets: Record<string, RasterAsset> = {};
   const values = files.map((file, index) => {
     const asset = `downscaled-source-${String(index).padStart(3, '0')}`;
     assets[asset] = { type: 'raster', path: file.path, ...(file.sha256 ? { sha256: file.sha256 } : {}) };
@@ -119,33 +197,35 @@ export function createDownscaledRecipe(archive, { color = '#0000ff', size = 8 } 
     metadata: { name: 'Downscaled studies', imageCount: files.length },
     values: { color, size },
     assets,
-    stages: [{
-      type: 'render',
-      id: 'downscaled',
-      forEach: { file: { source: 'values', values } },
-      key: ['get', 'filename', ['var', 'file']],
-      path: ['concat', 'downscaled/', ['get', 'filename', ['var', 'file']]],
-      properties: {
-        color: ['var', 'color'],
-        size: ['var', 'size'],
-        reproduction: 'analytic-from-pinned-source',
-      },
-      image: {
-        op: 'resize',
-        source: {
-          op: 'tint-chroma',
-          source: { op: 'raster', asset: ['get', 'asset', ['var', 'file']] },
+    stages: [
+      {
+        type: 'render',
+        id: 'downscaled',
+        forEach: { file: { source: 'values', values } },
+        key: ['get', 'filename', ['var', 'file']],
+        path: ['concat', 'downscaled/', ['get', 'filename', ['var', 'file']]],
+        properties: {
           color: ['var', 'color'],
+          size: ['var', 'size'],
+          reproduction: 'analytic-from-pinned-source',
         },
-        width: ['var', 'size'],
-        height: ['var', 'size'],
+        image: {
+          op: 'resize',
+          source: {
+            op: 'tint-chroma',
+            source: { op: 'raster', asset: ['get', 'asset', ['var', 'file']] },
+            color: ['var', 'color'],
+          },
+          width: ['var', 'size'],
+          height: ['var', 'size'],
+        },
       },
-    }],
+    ],
     outputs: [{ stage: 'downscaled' }],
   };
 }
 
-export function createGradientMaskRecipe(archive) {
+export function createGradientMaskRecipe(archive: ReferenceSetArchive): ReferenceSetRecipeInput {
   const map18 = archive.files.find((file) => file.path === 'Gradient Layers Alpha Maps/18.png');
   if (!map18) throw new Error('The reference set is missing Gradient Layers Alpha Maps/18.png.');
   return {
@@ -155,34 +235,39 @@ export function createGradientMaskRecipe(archive) {
     assets: {
       'gradient-map-18': { type: 'raster', path: map18.path, ...(map18.sha256 ? { sha256: map18.sha256 } : {}) },
     },
-    stages: [{
-      type: 'render',
-      id: 'gradient-masks',
-      forEach: {
-        map: {
-          source: 'values',
-          values: Array.from({ length: 19 }, (_, index) => ({ index, name: String(index).padStart(2, '0') })),
+    stages: [
+      {
+        type: 'render',
+        id: 'gradient-masks',
+        forEach: {
+          map: {
+            source: 'values',
+            values: Array.from({ length: 19 }, (_, index) => ({ index, name: String(index).padStart(2, '0') })),
+          },
+        },
+        key: ['get', 'name', ['var', 'map']],
+        path: ['concat', 'gradient-masks/', ['get', 'name', ['var', 'map']], '.png'],
+        properties: {
+          index: ['get', 'index', ['var', 'map']],
+          reproduction: ['case', ['==', ['get', 'index', ['var', 'map']], 18], 'raster-exact', 'analytic-alpha-exact'],
+        },
+        image: {
+          op: 'reference-set/alpha-map',
+          index: ['get', 'index', ['var', 'map']],
+          rasterAsset: 'gradient-map-18',
         },
       },
-      key: ['get', 'name', ['var', 'map']],
-      path: ['concat', 'gradient-masks/', ['get', 'name', ['var', 'map']], '.png'],
-      properties: {
-        index: ['get', 'index', ['var', 'map']],
-        reproduction: ['case', ['==', ['get', 'index', ['var', 'map']], 18], 'raster-exact', 'analytic-alpha-exact'],
-      },
-      image: {
-        op: 'reference-set/alpha-map',
-        index: ['get', 'index', ['var', 'map']],
-        rasterAsset: 'gradient-map-18',
-      },
-    }],
+    ],
     outputs: [{ stage: 'gradient-masks' }],
   };
 }
 
-export function createForegroundAlphaRecipe(archive, { color = '#ff0000' } = {}) {
+export function createForegroundAlphaRecipe(
+  archive: ReferenceSetArchive,
+  { color = '#ff0000' }: ColorRecipeOptions = {},
+): ReferenceSetRecipeInput {
   const files = archive.files.filter((file) => file.path.startsWith('red FG-Alpha/'));
-  const assets = {};
+  const assets: Record<string, RasterAsset> = {};
   const values = files.map((file, index) => {
     const asset = `foreground-field-${String(index + 1).padStart(2, '0')}`;
     assets[asset] = { type: 'raster', path: file.path, ...(file.sha256 ? { sha256: file.sha256 } : {}) };
@@ -213,24 +298,25 @@ export function createForegroundAlphaRecipe(archive, { color = '#ff0000' } = {})
           color: ['var', 'color'],
           reproduction: color === '#ff0000' ? 'raster-exact' : 'analytic-from-pinned-field',
         },
-        image: color === '#ff0000'
-          ? { op: 'input', binding: 'field' }
-          : {
-            op: 'tint-chroma',
-            source: { op: 'input', binding: 'field' },
-            color: ['var', 'color'],
-          },
+        image:
+          color === '#ff0000'
+            ? { op: 'input', binding: 'field' }
+            : {
+                op: 'tint-chroma',
+                source: { op: 'input', binding: 'field' },
+                color: ['var', 'color'],
+              },
       },
     ],
     outputs: [{ stage: 'foreground-alpha' }],
   };
 }
 
-export function createRasterFamilyRecipe(archive, familyId) {
+export function createRasterFamilyRecipe(archive: ReferenceSetArchive, familyId: string): ReferenceSetRecipeInput {
   const family = REFERENCE_SET_RECIPE_FAMILIES.find((item) => item.id === familyId);
   if (!family) throw new Error(`Unknown reference-set recipe family: ${familyId}`);
-  const assets = {};
-  const values = [];
+  const assets: Record<string, RasterAsset> = {};
+  const values: Omit<RasterFamilyValue, 'sourcePath'>[] = [];
   for (const [index, file] of archive.files.entries()) {
     const mapped = familyFile([family], file.path);
     if (!mapped) continue;
@@ -243,32 +329,33 @@ export function createRasterFamilyRecipe(archive, familyId) {
     profile: 'reference-set-exact/v1',
     metadata: { name: familyId, imageCount: values.length },
     assets,
-    stages: [{
-      type: 'render',
-      id: familyId,
-      forEach: { file: { source: 'values', values } },
-      key: ['get', 'key', ['var', 'file']],
-      path: ['get', 'path', ['var', 'file']],
-      properties: { reproduction: 'raster-exact' },
-      image: { op: 'raster', asset: ['get', 'asset', ['var', 'file']] },
-    }],
+    stages: [
+      {
+        type: 'render',
+        id: familyId,
+        forEach: { file: { source: 'values', values } },
+        key: ['get', 'key', ['var', 'file']],
+        path: ['get', 'path', ['var', 'file']],
+        properties: { reproduction: 'raster-exact' },
+        image: { op: 'raster', asset: ['get', 'asset', ['var', 'file']] },
+      },
+    ],
     outputs: [{ stage: familyId }],
   };
 }
 
-export function createTwoColorFamilyRecipe(archive, {
-  familyId,
-  sourceForeground,
-  sourceBackground,
-  foreground,
-  background,
-}) {
+export function createTwoColorFamilyRecipe(
+  archive: ReferenceSetArchive,
+  { familyId, sourceForeground, sourceBackground, foreground, background }: TwoColorFamilyRecipeOptions,
+): ReferenceSetRecipeInput {
   const recipe = createRasterFamilyRecipe(archive, familyId);
   recipe.values = { foreground, background };
-  recipe.stages[0].properties = { foreground: ['var', 'foreground'], background: ['var', 'background'], reproduction: 'transformed-raster' };
-  recipe.stages[0].image = {
+  const stage = recipe.stages[0];
+  if (stage?.type !== 'render') throw new Error(`Raster family ${familyId} did not produce a render stage.`);
+  stage.properties = { foreground: ['var', 'foreground'], background: ['var', 'background'], reproduction: 'transformed-raster' };
+  stage.image = {
     op: 'remap-two-color',
-    source: recipe.stages[0].image,
+    source: stage.image,
     sourceForeground,
     sourceBackground,
     foreground: ['var', 'foreground'],
@@ -277,41 +364,50 @@ export function createTwoColorFamilyRecipe(archive, {
   return recipe;
 }
 
-export function createOrganicGradientRecipe(archive, { color = '#993300' } = {}) {
+export function createOrganicGradientRecipe(
+  archive: ReferenceSetArchive,
+  { color = '#993300' }: ColorRecipeOptions = {},
+): ReferenceSetRecipeInput {
   const recipe = createRasterFamilyRecipe(archive, 'elliptical-gradients');
   recipe.values = { color };
-  recipe.stages[0].properties = { color: ['var', 'color'], reproduction: color === '#993300' ? 'raster-exact' : 'transformed-raster' };
-  if (color !== '#993300') recipe.stages[0].image = {
-    op: 'shift-rgb',
-    source: recipe.stages[0].image,
-    sourceBase: '#993300',
-    targetBase: ['var', 'color'],
-  };
+  const stage = recipe.stages[0];
+  if (stage?.type !== 'render') throw new Error('The elliptical-gradients family did not produce a render stage.');
+  stage.properties = { color: ['var', 'color'], reproduction: color === '#993300' ? 'raster-exact' : 'transformed-raster' };
+  if (color !== '#993300')
+    stage.image = {
+      op: 'shift-rgb',
+      source: stage.image,
+      sourceBase: '#993300',
+      targetBase: ['var', 'color'],
+    };
   return recipe;
 }
 
-export function createForegroundCompositeRecipe(archive, { color = '#ff0000' } = {}) {
+export function createForegroundCompositeRecipe(
+  archive: ReferenceSetArchive,
+  { color = '#ff0000' }: ColorRecipeOptions = {},
+): ReferenceSetRecipeInput {
   const sourceFiles = archive.files.filter((file) => file.path.startsWith('red FG-Alpha/'));
   const outputFiles = archive.files.filter((file) => file.path.startsWith('Red-col fg-alpha Print/print output/'));
-  const assets = {};
+  const assets: Record<string, RasterAsset> = {};
   const fields = sourceFiles.map((file, index) => {
     const asset = `red-field-${String(index + 1).padStart(2, '0')}`;
     assets[asset] = { type: 'raster', path: file.path, ...(file.sha256 ? { sha256: file.sha256 } : {}) };
     return { asset, key: file.path.slice('red FG-Alpha/'.length) };
   });
-  const outputs = [];
-  let flatOutput;
+  const outputs: Array<{ asset: string; filename: string; fieldKey: string; base: string; offsetX: number; offsetY: number }> = [];
+  let flatOutput: { asset: string; filename: string; color: string } | undefined;
   for (const [index, file] of outputFiles.entries()) {
     const archiveRecipe = getRedPrintArchiveRecipe(file.path);
     const asset = `red-output-${String(index).padStart(3, '0')}`;
     assets[asset] = { type: 'raster', path: file.path, ...(file.sha256 ? { sha256: file.sha256 } : {}) };
-    const filename = file.path.split('/').at(-1);
+    const filename = file.path.split('/').at(-1)!;
     if (archiveRecipe.kind === 'flat-alias') {
       flatOutput = { asset, filename, color: archiveRecipe.colour };
       continue;
     }
     const layer = getRedPrintRecipe(archiveRecipe.layerNumber);
-    const spec = RED_FG_ALPHA_SOURCE_SPECS[layer.sourceNumber];
+    const spec = RED_FG_ALPHA_SOURCE_SPECS[layer.sourceNumber]!;
     outputs.push({
       asset,
       filename,
@@ -322,7 +418,7 @@ export function createForegroundCompositeRecipe(archive, { color = '#ff0000' } =
     });
   }
   const transformed = color !== '#ff0000';
-  const stages = [
+  const stages: RenderStageInput[] = [
     {
       type: 'render',
       id: 'foreground-composite-fields',
@@ -348,26 +444,27 @@ export function createForegroundCompositeRecipe(archive, { color = '#ff0000' } =
       properties: { color: ['var', 'color'], reproduction: transformed ? 'generated' : 'raster-exact' },
       image: transformed
         ? {
-          op: 'composite',
-          destination: { op: 'fill', width: 64, height: 64, color: ['get', 'base', ['var', 'file']] },
-          source: { op: 'input', binding: 'field' },
-          offsetX: ['get', 'offsetX', ['var', 'file']],
-          offsetY: ['get', 'offsetY', ['var', 'file']],
-        }
+            op: 'composite',
+            destination: { op: 'fill', width: 64, height: 64, color: ['get', 'base', ['var', 'file']] },
+            source: { op: 'input', binding: 'field' },
+            offsetX: ['get', 'offsetX', ['var', 'file']],
+            offsetY: ['get', 'offsetY', ['var', 'file']],
+          }
         : { op: 'raster', asset: ['get', 'asset', ['var', 'file']] },
     },
   ];
-  if (flatOutput) stages.push({
-    type: 'render',
-    id: 'foreground-composite-flat',
-    forEach: { file: { source: 'values', values: [flatOutput] } },
-    key: ['get', 'filename', ['var', 'file']],
-    path: ['concat', 'foreground-composites/', ['get', 'filename', ['var', 'file']]],
-    properties: { reproduction: transformed ? 'analytic-exact' : 'raster-exact' },
-    image: transformed
-      ? { op: 'fill', width: 64, height: 64, color: ['get', 'color', ['var', 'file']] }
-      : { op: 'raster', asset: ['get', 'asset', ['var', 'file']] },
-  });
+  if (flatOutput)
+    stages.push({
+      type: 'render',
+      id: 'foreground-composite-flat',
+      forEach: { file: { source: 'values', values: [flatOutput] } },
+      key: ['get', 'filename', ['var', 'file']],
+      path: ['concat', 'foreground-composites/', ['get', 'filename', ['var', 'file']]],
+      properties: { reproduction: transformed ? 'analytic-exact' : 'raster-exact' },
+      image: transformed
+        ? { op: 'fill', width: 64, height: 64, color: ['get', 'color', ['var', 'file']] }
+        : { op: 'raster', asset: ['get', 'asset', ['var', 'file']] },
+    });
   return {
     format: RECIPE_FORMAT,
     profile: 'reference-set-exact/v1',
@@ -379,17 +476,17 @@ export function createForegroundCompositeRecipe(archive, { color = '#ff0000' } =
   };
 }
 
-export function createOrderedResultsRecipe(archive) {
+export function createOrderedResultsRecipe(archive: ReferenceSetArchive): ReferenceSetRecipeInput {
   const filesByPath = new Map(archive.files.map((file) => [file.path, file]));
-  const assets = {};
-  const sources = [];
-  const aliases = [];
-  const exceptions = [];
+  const assets: Record<string, RasterAsset> = {};
+  const sources: OrderedSource[] = [];
+  const aliases: Array<{ sourceKey: string; key: string }> = [];
+  const exceptions: OrderedSource[] = [];
   for (let index = 0; index < 972; index += 1) {
     const mapping = getResultAliasMapping(index);
     const resultFile = filesByPath.get(mapping.resultPath);
     if (!resultFile) throw new Error(`The reference set is missing ${mapping.resultPath}.`);
-    const resultFilename = mapping.resultPath.split('/').at(-1);
+    const resultFilename = mapping.resultPath.split('/').at(-1)!;
     if (!mapping.exactPixelAliasExpected) {
       const asset = `ordered-exception-${String(index).padStart(4, '0')}`;
       assets[asset] = { type: 'raster', path: resultFile.path, ...(resultFile.sha256 ? { sha256: resultFile.sha256 } : {}) };
@@ -450,10 +547,14 @@ export function createOrderedResultsRecipe(archive) {
   };
 }
 
-export function createCustomPermutationRecipe(palette, presetNames, overlays) {
+export function createCustomPermutationRecipe(
+  palette: readonly PaletteEntry[],
+  presetNames: readonly PresetName[],
+  overlays: readonly PermutationOverlay[],
+): ReferenceSetRecipeInput {
   const colors = palette.map(([id, value]) => ({ id, value }));
   const presets = presetNames.map((id) => ({ id, archiveName: PRESETS[id]?.archiveName ?? id }));
-  const variants = [];
+  const variants: JsonValue[] = [];
   let index = 0;
   for (const color of colors) {
     for (const preset of presets) {
@@ -489,15 +590,21 @@ export function createCustomPermutationRecipe(palette, presetNames, overlays) {
         type: 'render',
         id: 'custom-variants',
         forEach: { variant: { source: 'values', values: variants } },
-        key: ['concat',
-          ['get', 'id', ['get', 'color', ['var', 'variant']]], '-',
+        key: [
+          'concat',
+          ['get', 'id', ['get', 'color', ['var', 'variant']]],
+          '-',
           ['get', 'archiveName', ['get', 'preset', ['var', 'variant']]],
           ['get', 'name', ['get', 'overlay', ['var', 'variant']]],
         ],
-        path: ['concat', 'generated/variants/',
-          ['get', 'id', ['get', 'color', ['var', 'variant']]], '-',
+        path: [
+          'concat',
+          'generated/variants/',
+          ['get', 'id', ['get', 'color', ['var', 'variant']]],
+          '-',
           ['get', 'archiveName', ['get', 'preset', ['var', 'variant']]],
-          ['get', 'name', ['get', 'overlay', ['var', 'variant']]], '.png',
+          ['get', 'name', ['get', 'overlay', ['var', 'variant']]],
+          '.png',
         ],
         properties: { index: ['get', 'index', ['var', 'variant']] },
         image: {
@@ -520,15 +627,15 @@ export function createCustomPermutationRecipe(palette, presetNames, overlays) {
         target: { binding: 'target' },
         identity: 'recipe',
         key: ['concat', 'Generated_', ['pad', ['to-string', ['get', 'index', ['get', 'properties', ['var', 'target']]]], 4]],
-        path: ['concat', 'generated/results/Generated_', ['pad', ['to-string', ['get', 'index', ['get', 'properties', ['var', 'target']]]], 4], '.png'],
+        path: [
+          'concat',
+          'generated/results/Generated_',
+          ['pad', ['to-string', ['get', 'index', ['get', 'properties', ['var', 'target']]]], 4],
+          '.png',
+        ],
         properties: { reproduction: 'recipe-alias' },
       },
     ],
-    outputs: [
-      { stage: 'custom-flat' },
-      { stage: 'custom-masks' },
-      { stage: 'custom-variants' },
-      { stage: 'custom-results' },
-    ],
+    outputs: [{ stage: 'custom-flat' }, { stage: 'custom-masks' }, { stage: 'custom-variants' }, { stage: 'custom-results' }],
   };
 }

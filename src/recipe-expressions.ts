@@ -1,32 +1,63 @@
-const OPERATORS = new Set([
-  'literal', 'var', 'get', 'coalesce', 'concat', 'min', 'max', '==', '!=', '<', '<=', '>', '>=',
-  '+', '-', '*', '/', 'clamp', 'to-string', 'pad', 'case', 'match', 'let',
+import type { Expression } from './recipe-schema.js';
+
+export type ExpressionContext = {
+  variables?: Readonly<Record<string, unknown>>;
+  properties?: Readonly<Record<string, unknown>>;
+};
+
+export type ExpressionResult = unknown;
+
+const OPERATORS: ReadonlySet<string> = new Set([
+  'literal',
+  'var',
+  'get',
+  'coalesce',
+  'concat',
+  'min',
+  'max',
+  '==',
+  '!=',
+  '<',
+  '<=',
+  '>',
+  '>=',
+  '+',
+  '-',
+  '*',
+  '/',
+  'clamp',
+  'to-string',
+  'pad',
+  'case',
+  'match',
+  'let',
 ]);
 
-export function isExpression(value) {
+export function isExpression(value: unknown): value is Expression {
   return Array.isArray(value) && typeof value[0] === 'string' && OPERATORS.has(value[0]);
 }
 
-function finiteNumber(value, operator) {
+function finiteNumber(value: unknown, operator: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`${operator} expects finite numbers.`);
   return value;
 }
 
-function evaluateMany(values, context) {
+function evaluateMany(values: readonly unknown[], context: ExpressionContext): ExpressionResult[] {
   return values.map((value) => evaluateExpressionValue(value, context));
 }
 
-export function evaluateExpression(expression, context = {}) {
-  const [operator, ...args] = expression;
+export function evaluateExpression(expression: Expression, context: ExpressionContext = {}): ExpressionResult {
+  const [operator, ...args] = expression as readonly [string, ...unknown[]];
   if (operator === 'literal') return args[0];
   if (operator === 'var') {
-    if (!Object.hasOwn(context.variables ?? {}, args[0])) throw new Error(`Unknown variable: ${args[0]}`);
-    return context.variables[args[0]];
+    const name = args[0] as string;
+    if (!Object.hasOwn(context.variables ?? {}, name)) throw new Error(`Unknown variable: ${name}`);
+    return context.variables?.[name];
   }
   if (operator === 'get') {
     const object = args.length === 1 ? context.properties : evaluateExpressionValue(args[1], context);
     if (object === null || typeof object !== 'object') throw new Error(`Cannot get ${args[0]} from a non-object value.`);
-    return object[args[0]];
+    return (object as Record<string, unknown>)[args[0] as string];
   }
   if (operator === 'coalesce') {
     for (const value of args) {
@@ -59,9 +90,9 @@ export function evaluateExpression(expression, context = {}) {
     return evaluateExpressionValue(args.at(-1), context);
   }
   if (operator === 'let') {
-    const variables = { ...(context.variables ?? {}) };
+    const variables: Record<string, unknown> = { ...context.variables };
     for (let index = 0; index < args.length - 1; index += 2) {
-      variables[args[index]] = evaluateExpressionValue(args[index + 1], { ...context, variables });
+      variables[args[index] as string] = evaluateExpressionValue(args[index + 1], { ...context, variables });
     }
     return evaluateExpressionValue(args.at(-1), { ...context, variables });
   }
@@ -69,10 +100,10 @@ export function evaluateExpression(expression, context = {}) {
   const values = evaluateMany(args, context);
   if (operator === '==') return values[0] === values[1];
   if (operator === '!=') return values[0] !== values[1];
-  if (operator === '<') return values[0] < values[1];
-  if (operator === '<=') return values[0] <= values[1];
-  if (operator === '>') return values[0] > values[1];
-  if (operator === '>=') return values[0] >= values[1];
+  if (operator === '<') return (values[0] as string) < (values[1] as string);
+  if (operator === '<=') return (values[0] as string) <= (values[1] as string);
+  if (operator === '>') return (values[0] as string) > (values[1] as string);
+  if (operator === '>=') return (values[0] as string) >= (values[1] as string);
   if (operator === '+') return finiteNumber(values[0], operator) + finiteNumber(values[1], operator);
   if (operator === '-') return finiteNumber(values[0], operator) - finiteNumber(values[1], operator);
   if (operator === '*') return finiteNumber(values[0], operator) * finiteNumber(values[1], operator);
@@ -83,10 +114,11 @@ export function evaluateExpression(expression, context = {}) {
   }
   if (operator === 'min') return Math.min(...values.map((value) => finiteNumber(value, operator)));
   if (operator === 'max') return Math.max(...values.map((value) => finiteNumber(value, operator)));
-  if (operator === 'clamp') return Math.min(finiteNumber(values[2], operator), Math.max(finiteNumber(values[1], operator), finiteNumber(values[0], operator)));
+  if (operator === 'clamp')
+    return Math.min(finiteNumber(values[2], operator), Math.max(finiteNumber(values[1], operator), finiteNumber(values[0], operator)));
   throw new Error(`Unsupported expression operator: ${operator}`);
 }
 
-export function evaluateExpressionValue(value, context = {}) {
+export function evaluateExpressionValue(value: unknown, context: ExpressionContext = {}): ExpressionResult {
   return isExpression(value) ? evaluateExpression(value, context) : value;
 }

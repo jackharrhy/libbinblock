@@ -1,17 +1,113 @@
-import { renderBlock, renderMask } from './core.js';
-import {
-  compositeSourceOver,
-  fillRGBA,
-  renderEllipticalGradient,
-  resizeLanczos3RGBA,
-  rotateRGBA90,
-} from './legacy.js';
+import { PRESETS, renderMask } from './core.js';
+import type { PresetName } from './core.js';
+import { compositeSourceOver, fillRGBA, renderEllipticalGradient, resizeLanczos3RGBA, rotateRGBA90 } from './legacy.js';
 import { evaluateExpressionValue } from './recipe-expressions.js';
 import { expandStageBindings, sortRecipeStages } from './recipe-graph.js';
 import { parseRecipeDocument } from './recipe-schema.js';
+import type { ExpressionValue, FontAsset, ImageNode, JsonValue, RasterAsset, RecipeDocument } from './recipe-schema.js';
 
-function assertImage(image, label = 'image') {
-  if (!image || !(image.pixels instanceof Uint8ClampedArray) || !Number.isInteger(image.width) || !Number.isInteger(image.height)) {
+export interface ImageData {
+  pixels: Uint8ClampedArray;
+  width: number;
+  height: number;
+}
+
+export interface ImageDataInput {
+  pixels: Uint8Array | Uint8ClampedArray;
+  width: number;
+  height: number;
+}
+
+export type RenderProvenance = { type: 'render'; operation: ImageNode['op'] };
+export type AliasProvenance = { type: 'alias'; identity: 'bytes' | 'pixels' | 'recipe'; target: string };
+export type ArtifactProvenance = RenderProvenance | AliasProvenance;
+
+export interface RecipeArtifact {
+  stage: string;
+  key: string;
+  path?: string;
+  properties: Record<string, unknown>;
+  image: ImageData;
+  provenance: ArtifactProvenance;
+}
+
+export interface ExpressionArtifact {
+  stage: string;
+  key: string;
+  path?: string;
+  properties: Record<string, unknown>;
+}
+
+export interface GlyphRenderOptions {
+  font: string;
+  asset: FontAsset;
+  text: string;
+  width: number;
+  height: number;
+  fontSize: number;
+  color: string;
+  antialias: 'none' | 'grayscale';
+  offsetX: number;
+  offsetY: number;
+}
+
+export type RasterResolver = (assetId: string, asset: RasterAsset) => ImageDataInput | Promise<ImageDataInput>;
+export type GlyphRenderer = (options: GlyphRenderOptions) => ImageDataInput | Promise<ImageDataInput>;
+export type ArtifactBindings = Record<string, unknown>;
+
+export interface ImageExecutorContext {
+  document: RecipeDocument;
+  values: Readonly<Record<string, JsonValue>>;
+  variables: Readonly<Record<string, unknown>>;
+  bindings: ArtifactBindings;
+  definitionStack: readonly string[];
+  resolveRaster?: RasterResolver;
+  renderGlyph?: GlyphRenderer;
+  execute: ImageExecutor;
+}
+
+export type ImageExecutorBaseContext = Omit<ImageExecutorContext, 'execute'>;
+export type ImageOperationName = ImageNode['op'];
+type NarrowImageNode<Node extends ImageNode, Operation extends ImageOperationName> = Node extends ImageNode
+  ? Operation extends Node['op']
+    ? Node & { op: Operation }
+    : never
+  : never;
+export type ImageNodeFor<Operation extends ImageOperationName> = NarrowImageNode<ImageNode, Operation>;
+export type ImageOperation<Operation extends ImageOperationName = ImageOperationName> = (
+  node: ImageNodeFor<Operation>,
+  context: ImageExecutorContext,
+) => ImageData | Promise<ImageData>;
+export type ImageOperationRegistry = { [Operation in ImageOperationName]?: ImageOperation<Operation> };
+export type ImageExecutor = (node: ImageNode, context: ImageExecutorBaseContext) => Promise<ImageData>;
+
+export interface CompileRecipeOptions {
+  operations?: ImageOperationRegistry;
+  maximumArtifacts?: number;
+  resolveRaster?: RasterResolver;
+  renderGlyph?: GlyphRenderer;
+}
+
+export interface CompileRecipeResult {
+  document: RecipeDocument;
+  stages: Map<string, RecipeArtifact[]>;
+  outputs: RecipeArtifact[];
+}
+
+export function isImageData(image: unknown): image is ImageData {
+  if (image === null || typeof image !== 'object') return false;
+  const candidate = image as Partial<ImageData>;
+  return candidate.pixels instanceof Uint8ClampedArray && Number.isInteger(candidate.width) && Number.isInteger(candidate.height);
+}
+
+export function isRecipeArtifact(value: unknown): value is RecipeArtifact {
+  if (value === null || typeof value !== 'object') return false;
+  const candidate = value as Partial<RecipeArtifact>;
+  return typeof candidate.stage === 'string' && typeof candidate.key === 'string' && isImageData(candidate.image);
+}
+
+function assertImage(image: unknown, label = 'image'): ImageData {
+  if (!isImageData(image)) {
     throw new Error(`${label} must contain Uint8ClampedArray pixels and integer dimensions.`);
   }
   if (image.width < 1 || image.height < 1 || image.pixels.length !== image.width * image.height * 4) {
@@ -20,17 +116,24 @@ function assertImage(image, label = 'image') {
   return image;
 }
 
-function evaluate(nodeValue, context) {
+function evaluate(nodeValue: ExpressionValue | undefined, context: ImageExecutorBaseContext): unknown {
   return evaluateExpressionValue(nodeValue, { variables: context.variables, properties: context.values });
 }
 
-function integer(nodeValue, context, label, minimum = Number.MIN_SAFE_INTEGER) {
+function integer(nodeValue: ExpressionValue, context: ImageExecutorBaseContext, label: string, minimum = Number.MIN_SAFE_INTEGER): number {
   const value = evaluate(nodeValue, context);
-  if (!Number.isInteger(value) || value < minimum) throw new Error(`${label} must be an integer${minimum > Number.MIN_SAFE_INTEGER ? ` of at least ${minimum}` : ''}.`);
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum)
+    throw new Error(`${label} must be an integer${minimum > Number.MIN_SAFE_INTEGER ? ` of at least ${minimum}` : ''}.`);
   return value;
 }
 
-function number(nodeValue, context, label, minimum = -Infinity, maximum = Infinity) {
+function number(
+  nodeValue: ExpressionValue,
+  context: ImageExecutorBaseContext,
+  label: string,
+  minimum = -Infinity,
+  maximum = Infinity,
+): number {
   const value = evaluate(nodeValue, context);
   if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum) {
     throw new Error(`${label} must be a finite number between ${minimum} and ${maximum}.`);
@@ -38,35 +141,40 @@ function number(nodeValue, context, label, minimum = -Infinity, maximum = Infini
   return value;
 }
 
-function string(nodeValue, context, label) {
+function string(nodeValue: ExpressionValue, context: ImageExecutorBaseContext, label: string): string {
   const value = evaluate(nodeValue, context);
   if (typeof value !== 'string') throw new Error(`${label} must evaluate to a string.`);
   return value;
 }
 
-function rgb(value) {
+function rgb(value: string): [number, number, number] {
   const match = value.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})(?:[\da-f]{2})?$/i);
   if (!match) throw new Error(`Invalid color: ${value}`);
-  return match.slice(1, 4).map((channel) => Number.parseInt(channel, 16));
+  return match.slice(1, 4).map((channel) => Number.parseInt(channel, 16)) as [number, number, number];
 }
 
-function expressionArtifact(artifact) {
+function expressionArtifact(artifact: RecipeArtifact): ExpressionArtifact {
   return { stage: artifact.stage, key: artifact.key, path: artifact.path, properties: artifact.properties };
 }
 
-function expressionVariables(values, bindings) {
-  return Object.fromEntries(Object.entries(values).concat(Object.entries(bindings).map(([name, value]) => [
-    name,
-    value?.image ? expressionArtifact(value) : value,
-  ])));
+function expressionVariables(values: Readonly<Record<string, JsonValue>>, bindings: ArtifactBindings): Record<string, unknown> {
+  const entries: [string, unknown][] = Object.entries(values);
+  entries.push(
+    ...Object.entries(bindings).map(([name, value]): [string, unknown] => [
+      name,
+      isRecipeArtifact(value) ? expressionArtifact(value) : value,
+    ]),
+  );
+  return Object.fromEntries(entries);
 }
 
-function validateOutputPath(path) {
-  if (!path || path.startsWith('/') || path.split('/').includes('..')) throw new Error(`Output path must be relative and cannot contain '..': ${path}`);
+function validateOutputPath(path: string): string {
+  if (!path || path.startsWith('/') || path.split('/').includes('..'))
+    throw new Error(`Output path must be relative and cannot contain '..': ${path}`);
   return path;
 }
 
-function cropImage(source, x, y, width, height) {
+function cropImage(source: ImageData, x: number, y: number, width: number, height: number): ImageData {
   const pixels = new Uint8ClampedArray(width * height * 4);
   for (let outputY = 0; outputY < height; outputY += 1) {
     const sourceY = y + outputY;
@@ -81,17 +189,22 @@ function cropImage(source, x, y, width, height) {
   return { pixels, width, height };
 }
 
+function isPresetName(value: string): value is PresetName {
+  return value in PRESETS;
+}
+
 export const BUILTIN_IMAGE_OPERATIONS = {
   input: async (node, context) => {
     const artifact = context.bindings[node.binding];
-    if (!artifact?.image) throw new Error(`Input binding ${node.binding} does not contain an image artifact.`);
+    if (!isRecipeArtifact(artifact)) throw new Error(`Input binding ${node.binding} does not contain an image artifact.`);
     return artifact.image;
   },
   use: async (node, context) => {
     const definition = context.document.definitions[node.definition];
     if (!definition) throw new Error(`Unknown definition: ${node.definition}`);
-    if (context.definitionStack.includes(node.definition)) throw new Error(`Definition cycle: ${[...context.definitionStack, node.definition].join(' -> ')}`);
-    const parameters = { ...definition.parameters };
+    if (context.definitionStack.includes(node.definition))
+      throw new Error(`Definition cycle: ${[...context.definitionStack, node.definition].join(' -> ')}`);
+    const parameters: Record<string, unknown> = { ...definition.parameters };
     for (const [name, value] of Object.entries(node.with)) parameters[name] = evaluate(value, context);
     return context.execute(definition.image, {
       ...context,
@@ -108,10 +221,12 @@ export const BUILTIN_IMAGE_OPERATIONS = {
     const width = integer(node.width, context, 'gradient width', 1);
     const height = integer(node.height, context, 'gradient height', 1);
     if (node.shape === 'preset') {
+      const preset = string(node.preset, context, 'gradient preset');
+      if (!isPresetName(preset)) throw new Error(`Unknown gradient preset: ${preset}`);
       const pixels = renderMask({
         width,
         height,
-        preset: string(node.preset, context, 'gradient preset'),
+        preset,
         rotation: integer(node.rotation, context, 'gradient rotation'),
       });
       const color = rgb(string(node.color, context, 'gradient color'));
@@ -150,18 +265,21 @@ export const BUILTIN_IMAGE_OPERATIONS = {
     const asset = context.document.assets[fontId];
     if (asset?.type !== 'font') throw new Error(`Unknown font asset: ${fontId}`);
     if (!context.renderGlyph) throw new Error(`No glyph renderer was provided for font ${fontId}.`);
-    return assertImage(await context.renderGlyph({
-      font: fontId,
-      asset,
-      text: string(node.text, context, 'glyph text'),
-      width: integer(node.width, context, 'glyph width', 1),
-      height: integer(node.height, context, 'glyph height', 1),
-      fontSize: number(node.fontSize, context, 'glyph font size', Number.EPSILON),
-      color: string(node.color, context, 'glyph color'),
-      antialias: node.antialias,
-      offsetX: number(node.offsetX, context, 'glyph offsetX'),
-      offsetY: number(node.offsetY, context, 'glyph offsetY'),
-    }), 'glyph renderer result');
+    return assertImage(
+      await context.renderGlyph({
+        font: fontId,
+        asset,
+        text: string(node.text, context, 'glyph text'),
+        width: integer(node.width, context, 'glyph width', 1),
+        height: integer(node.height, context, 'glyph height', 1),
+        fontSize: number(node.fontSize, context, 'glyph font size', Number.EPSILON),
+        color: string(node.color, context, 'glyph color'),
+        antialias: node.antialias,
+        offsetX: number(node.offsetX, context, 'glyph offsetX'),
+        offsetY: number(node.offsetY, context, 'glyph offsetY'),
+      }),
+      'glyph renderer result',
+    );
   },
   composite: async (node, context) => {
     const destination = await context.execute(node.destination, context);
@@ -199,7 +317,7 @@ export const BUILTIN_IMAGE_OPERATIONS = {
     for (let offset = 0; offset < pixels.length; offset += 4) {
       const minimum = Math.min(source.pixels[offset], source.pixels[offset + 1], source.pixels[offset + 2]);
       const chroma = Math.max(source.pixels[offset], source.pixels[offset + 1], source.pixels[offset + 2]) - minimum;
-      for (let channel = 0; channel < 3; channel += 1) pixels[offset + channel] = minimum + chroma * color[channel] / 255;
+      for (let channel = 0; channel < 3; channel += 1) pixels[offset + channel] = minimum + (chroma * color[channel]) / 255;
     }
     return { ...source, pixels };
   },
@@ -214,9 +332,11 @@ export const BUILTIN_IMAGE_OPERATIONS = {
     const pixels = new Uint8ClampedArray(source.pixels);
     for (let offset = 0; offset < pixels.length; offset += 4) {
       let amount = 0;
-      for (let channel = 0; channel < 3; channel += 1) amount += (source.pixels[offset + channel] - sourceBackground[channel]) * (sourceForeground[channel] - sourceBackground[channel]);
+      for (let channel = 0; channel < 3; channel += 1)
+        amount += (source.pixels[offset + channel] - sourceBackground[channel]) * (sourceForeground[channel] - sourceBackground[channel]);
       amount = Math.min(1, Math.max(0, amount / denominator));
-      for (let channel = 0; channel < 3; channel += 1) pixels[offset + channel] = background[channel] * (1 - amount) + foreground[channel] * amount;
+      for (let channel = 0; channel < 3; channel += 1)
+        pixels[offset + channel] = background[channel] * (1 - amount) + foreground[channel] * amount;
     }
     return { ...source, pixels };
   },
@@ -226,7 +346,8 @@ export const BUILTIN_IMAGE_OPERATIONS = {
     const targetBase = rgb(string(node.targetBase, context, 'target base'));
     const pixels = new Uint8ClampedArray(source.pixels);
     for (let offset = 0; offset < pixels.length; offset += 4) {
-      for (let channel = 0; channel < 3; channel += 1) pixels[offset + channel] = targetBase[channel] + source.pixels[offset + channel] - sourceBase[channel];
+      for (let channel = 0; channel < 3; channel += 1)
+        pixels[offset + channel] = targetBase[channel] + source.pixels[offset + channel] - sourceBase[channel];
     }
     return { ...source, pixels };
   },
@@ -236,15 +357,13 @@ export const BUILTIN_IMAGE_OPERATIONS = {
     if (source.width !== mask.width || source.height !== mask.height) throw new Error('apply-mask inputs must have matching dimensions.');
     const pixels = new Uint8ClampedArray(source.pixels);
     for (let offset = 3; offset < pixels.length; offset += 4) {
-      pixels[offset] = node.mode === 'replace'
-        ? mask.pixels[offset]
-        : Math.round(pixels[offset] * mask.pixels[offset] / 255);
+      pixels[offset] = node.mode === 'replace' ? mask.pixels[offset] : Math.round((pixels[offset] * mask.pixels[offset]) / 255);
     }
     return { ...source, pixels };
   },
   rotate: async (node, context) => {
     const source = await context.execute(node.source, context);
-    return rotateRGBA90(source.pixels, source.width, source.height, integer(node.turns, context, 'rotation turns'));
+    return assertImage(rotateRGBA90(source.pixels, source.width, source.height, integer(node.turns, context, 'rotation turns')));
   },
   resize: async (node, context) => {
     const source = await context.execute(node.source, context);
@@ -262,32 +381,36 @@ export const BUILTIN_IMAGE_OPERATIONS = {
       integer(node.height, context, 'crop height', 1),
     );
   },
-};
+} satisfies ImageOperationRegistry;
 
-function createImageExecutor(operations) {
+function createImageExecutor(operations: ImageOperationRegistry = {}): ImageExecutor {
   const registry = { ...BUILTIN_IMAGE_OPERATIONS, ...operations };
-  const execute = async (node, context) => {
-    const operation = registry[node.op];
+  const execute: ImageExecutor = async (node, context) => {
+    const operation = registry[node.op] as ImageOperation | undefined;
     if (!operation) throw new Error(`No executor is registered for image operation ${node.op}.`);
     return assertImage(await operation(node, { ...context, execute }), `${node.op} result`);
   };
   return execute;
 }
 
-export async function compileRecipe(input, options = {}) {
+export async function compileRecipe(input: unknown, options: CompileRecipeOptions = {}): Promise<CompileRecipeResult> {
   const document = parseRecipeDocument(input);
-  const artifactsByStage = new Map();
+  const artifactsByStage = new Map<string, RecipeArtifact[]>();
   const execute = createImageExecutor(options.operations);
   const maximumArtifacts = options.maximumArtifacts ?? 100_000;
   let artifactCount = 0;
 
   for (const stage of sortRecipeStages(document.stages)) {
-    const combinations = expandStageBindings(stage, artifactsByStage, (where, bindings) => Boolean(evaluateExpressionValue(where, {
-      variables: expressionVariables(document.values, bindings),
-      properties: document.values,
-    })));
-    const stageArtifacts = [];
-    const keys = new Set();
+    const combinations = expandStageBindings(stage, artifactsByStage, (where, bindings) =>
+      Boolean(
+        evaluateExpressionValue(where, {
+          variables: expressionVariables(document.values, bindings),
+          properties: document.values,
+        }),
+      ),
+    );
+    const stageArtifacts: RecipeArtifact[] = [];
+    const keys = new Set<string>();
     for (const bindings of combinations) {
       artifactCount += 1;
       if (artifactCount > maximumArtifacts) throw new Error(`Recipe exceeds the ${maximumArtifacts} artifact limit.`);
@@ -306,14 +429,14 @@ export async function compileRecipe(input, options = {}) {
       keys.add(key);
       const path = stage.path === undefined ? undefined : validateOutputPath(string(stage.path, context, `stage ${stage.id} path`));
       const properties = Object.fromEntries(Object.entries(stage.properties).map(([name, value]) => [name, evaluate(value, context)]));
-      let image;
-      let provenance;
+      let image: ImageData;
+      let provenance: ArtifactProvenance;
       if (stage.type === 'render') {
         image = await execute(stage.image, context);
         provenance = { type: 'render', operation: stage.image.op };
       } else {
         const target = bindings[stage.target.binding];
-        if (!target?.image) throw new Error(`Alias stage ${stage.id} target ${stage.target.binding} is not an image artifact.`);
+        if (!isRecipeArtifact(target)) throw new Error(`Alias stage ${stage.id} target ${stage.target.binding} is not an image artifact.`);
         image = target.image;
         provenance = { type: 'alias', identity: stage.identity, target: `${target.stage}/${target.key}` };
       }
@@ -323,7 +446,7 @@ export async function compileRecipe(input, options = {}) {
   }
 
   const outputs = document.outputs.flatMap(({ stage }) => artifactsByStage.get(stage) ?? []);
-  const paths = new Set();
+  const paths = new Set<string>();
   for (const output of outputs) {
     if (!output.path) throw new Error(`Output ${output.stage}/${output.key} has no path.`);
     if (paths.has(output.path)) throw new Error(`Duplicate output path: ${output.path}`);

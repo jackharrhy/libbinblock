@@ -1,18 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseRecipeDocument, recipeJsonSchema, RecipeDocumentSchema } from '../src/recipe-schema.js';
+import { parseRecipeDocument, recipeJsonSchema, RecipeDocumentSchema, type JsonValue } from '../src/recipe-schema.js';
 
-function minimalRecipe(overrides = {}) {
+function minimalRecipe(overrides: Record<string, JsonValue> = {}): Record<string, JsonValue> {
   return {
     format: 'bin-block-recipe/v1',
-    stages: [{
-      type: 'render',
-      id: 'solid',
-      forEach: {},
-      key: 'solid',
-      path: 'solid.png',
-      image: { op: 'fill', width: 1, height: 1, color: '#112233' },
-    }],
+    stages: [
+      {
+        type: 'render',
+        id: 'solid',
+        forEach: {},
+        key: 'solid',
+        path: 'solid.png',
+        image: { op: 'fill', width: 1, height: 1, color: '#112233' },
+      },
+    ],
     outputs: [{ stage: 'solid' }],
     ...overrides,
   };
@@ -34,8 +36,8 @@ test('recipe Zod definitions export as JSON Schema for editors and tooling', () 
 });
 
 test('recipe schema rejects unknown operations and fields', () => {
-  const operation = minimalRecipe();
-  operation.stages[0].image = { op: 'magic-filter', amount: 1 };
+  const operation = minimalRecipe() as { stages: Array<{ image: JsonValue }> };
+  operation.stages[0]!.image = { op: 'magic-filter', amount: 1 };
   assert.equal(RecipeDocumentSchema.safeParse(operation).success, false);
 
   const unknownField = minimalRecipe({ surprise: true });
@@ -46,11 +48,17 @@ test('recipe schema reports missing stages, input bindings, assets, and dependen
   const recipe = minimalRecipe({
     stages: [
       {
-        type: 'render', id: 'first', forEach: { second: { source: 'stage', stage: 'second' } }, key: 'first',
+        type: 'render',
+        id: 'first',
+        forEach: { second: { source: 'stage', stage: 'second' } },
+        key: 'first',
         image: { op: 'input', binding: 'missing' },
       },
       {
-        type: 'render', id: 'second', forEach: { first: { source: 'stage', stage: 'first' } }, key: 'second',
+        type: 'render',
+        id: 'second',
+        forEach: { first: { source: 'stage', stage: 'first' } },
+        key: 'second',
         image: { op: 'raster', asset: 'missing-raster' },
       },
     ],

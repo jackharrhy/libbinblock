@@ -27,8 +27,9 @@ import {
   resizeLanczos3RGBA,
   rotateRGBA90,
 } from '../src/legacy.js';
+import type { PixelBuffer, RasterData, ResultAliasMapping } from '../src/legacy.js';
 
-async function loadRgba(file) {
+async function loadRgba(file: string): Promise<RasterData> {
   const image = await loadImage(file);
   const canvas = createCanvas(image.width, image.height);
   canvas.getContext('2d').drawImage(image, 0, 0);
@@ -39,7 +40,7 @@ async function loadRgba(file) {
   };
 }
 
-function difference(actual, expected) {
+function difference(actual: PixelBuffer, expected: PixelBuffer): { channels: number; absolute: number; maximum: number } {
   assert.equal(actual.length, expected.length);
   let channels = 0;
   let absolute = 0;
@@ -58,9 +59,10 @@ test('legacy maps 00-17 reproduce native dimensions, offsets, and every alpha by
     const fixture = await loadRgba(`reference-set/Gradient Layers Alpha Maps/${String(index).padStart(2, '0')}.png`);
     const generated = renderLegacyAlphaMap(index);
     const spec = LEGACY_ALPHA_MAP_SPECS[index];
-    assert.deepEqual([generated.width, generated.height, generated.offsetX, generated.offsetY], [
-      fixture.width, fixture.height, spec.offsetX, spec.offsetY,
-    ]);
+    assert.deepEqual(
+      [generated.width, generated.height, generated.offsetX, generated.offsetY],
+      [fixture.width, fixture.height, spec.offsetX, spec.offsetY],
+    );
     for (let pixel = 0; pixel < fixture.width * fixture.height; pixel += 1) {
       assert.equal(generated.pixels[pixel * 4 + 3], fixture.pixels[pixel * 4 + 3], `map ${index}, pixel ${pixel}`);
     }
@@ -89,8 +91,8 @@ test('source-over clips cropped placement and preserves straight RGBA', () => {
   const base = fillRGBA(2, 2, '#0000ff80');
   const source = fillRGBA(2, 1, '#ff000080');
   const result = compositeSourceOver(base, 2, 2, source, 2, 1, { offsetX: 1, offsetY: 0 });
-  assert.deepEqual([...result.slice(0, 8)], [0, 0, 255, 128, 170, 0, 85, 192]);
-  assert.deepEqual([...result.slice(8)], [0, 0, 255, 128, 0, 0, 255, 128]);
+  assert.deepEqual(Array.from(result.slice(0, 8)), [0, 0, 255, 128, 170, 0, 85, 192]);
+  assert.deepEqual(Array.from(result.slice(8)), [0, 0, 255, 128, 0, 0, 255, 128]);
 });
 
 test('red foreground-alpha print indexing and a source-over fixture are exact', async () => {
@@ -125,13 +127,16 @@ test('red print source metadata and archive filename discontinuity are recovered
   assert.deepEqual(getRedPrintArchiveRecipe('layer_500.png'), { filename: 'layer_500.png', kind: 'red-print', layerNumber: 500 });
   assert.deepEqual(getRedPrintArchiveRecipe('layer_502.png'), { filename: 'layer_502.png', kind: 'red-print', layerNumber: 501 });
   assert.deepEqual(getRedPrintArchiveRecipe('layer_69-1.png'), {
-    filename: 'layer_69-1.png', kind: 'flat-alias', colour: '#d4ff00', out4LayerNumber: 780,
+    filename: 'layer_69-1.png',
+    kind: 'flat-alias',
+    colour: '#d4ff00',
+    out4LayerNumber: 780,
   });
 });
 
 test('all 815 red print archive outputs are generated within measured source quantization', async (context) => {
   const directory = 'reference-set/Red-col fg-alpha Print/print output';
-  const sources = {};
+  const sources: Record<number, RasterData> = {};
   for (let sourceNumber = 1; sourceNumber <= 22; sourceNumber += 1) {
     sources[sourceNumber] = await loadRgba(`reference-set/red FG-Alpha/${sourceNumber}.png`);
   }
@@ -149,7 +154,9 @@ test('all 815 red print archive outputs are generated within measured source qua
     absoluteError += delta.absolute;
     maximumError = Math.max(maximumError, delta.maximum);
   }
-  context.diagnostic(`${exact}/${files.length} exact; ${differingChannels} differing channels; absolute error ${absoluteError}; max ${maximumError}`);
+  context.diagnostic(
+    `${exact}/${files.length} exact; ${differingChannels} differing channels; absolute error ${absoluteError}; max ${maximumError}`,
+  );
   assert.equal(files.length, 815);
   assert.equal(exact, 482);
   assert.equal(maximumError, 1);
@@ -176,13 +183,13 @@ test('result numbering recovers all group boundaries and the missing grad06 fixt
 
 test('all 972 result aliases map to RGB pixels with 12 encoded grad06 exceptions', async (context) => {
   const availableRgb = new Set(await readdir('reference-set/col bin 2/rgb'));
-  const exceptions = [];
+  const exceptions: ResultAliasMapping[] = [];
   let exactAliases = 0;
   for (let index = 0; index < 972; index += 1) {
     const mapping = getResultAliasMapping(index);
     if (!mapping.exactPixelAliasExpected) {
       exceptions.push(mapping);
-      assert.equal(availableRgb.has(mapping.rgbPath.split('/').at(-1)), false);
+      assert.equal(availableRgb.has(mapping.rgbPath.split('/').at(-1) ?? ''), false);
       continue;
     }
     const result = await loadRgba(`reference-set/${mapping.resultPath}`);
@@ -192,7 +199,10 @@ test('all 972 result aliases map to RGB pixels with 12 encoded grad06 exceptions
   }
   context.diagnostic(`${exactAliases}/972 exact RGB aliases; ${exceptions.length} missing grad06blk50 exports`);
   assert.equal(exactAliases, 960);
-  assert.deepEqual(exceptions.map((entry) => entry.index), RESULT_GRAD06BLK50_EXCEPTIONS.map((entry) => entry.resultIndex));
+  assert.deepEqual(
+    exceptions.map((entry) => entry.index),
+    RESULT_GRAD06BLK50_EXCEPTIONS.map((entry) => entry.resultIndex),
+  );
 });
 
 test('historic variant names expose gradient, overlay, opacity, and rotation', () => {
@@ -238,13 +248,10 @@ test('all 88 historic blue outputs are exact from unrotated 64px sources', async
 });
 
 test('90-degree rotation is exact for rectangular data and archive CW/CCW files', async () => {
-  const rectangular = new Uint8ClampedArray([
-    1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255,
-    4, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255,
-  ]);
+  const rectangular = new Uint8ClampedArray([1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255, 5, 0, 0, 255, 6, 0, 0, 255]);
   const clockwise = rotateRGBA90(rectangular, 3, 2, 1);
   assert.deepEqual([clockwise.width, clockwise.height], [2, 3]);
-  assert.deepEqual([...clockwise.pixels.filter((_, index) => index % 4 === 0)], [4, 1, 5, 2, 6, 3]);
+  assert.deepEqual(Array.from(clockwise.pixels.filter((_, index) => index % 4 === 0)), [4, 1, 5, 2, 6, 3]);
 
   const original = await loadRgba('reference-set/blue 64-8 24 bit/col_blue_hi-grad10blk.png');
   const cwFixture = await loadRgba('reference-set/blue 64-8 24 bit/col_blue_hi-grad10blk-rotCW.png');
@@ -269,9 +276,9 @@ test('elliptical multi-stop gradients support unequal radii, rotation, alpha, an
       { offset: 1, color: '#00000000' },
     ],
   });
-  assert.deepEqual([...pixels.slice((2 * 5 + 2) * 4, (2 * 5 + 3) * 4)], [255, 255, 255, 255]);
-  assert.deepEqual([...pixels.slice((2 * 5) * 4, (2 * 5 + 1) * 4)], [0, 0, 0, 0]);
-  assert.deepEqual([...pixels.slice((1 * 5 + 2) * 4, (1 * 5 + 3) * 4)], [255, 0, 0, 128]);
+  assert.deepEqual(Array.from(pixels.slice((2 * 5 + 2) * 4, (2 * 5 + 3) * 4)), [255, 255, 255, 255]);
+  assert.deepEqual(Array.from(pixels.slice(2 * 5 * 4, (2 * 5 + 1) * 4)), [0, 0, 0, 0]);
+  assert.deepEqual(Array.from(pixels.slice((1 * 5 + 2) * 4, (1 * 5 + 3) * 4)), [255, 0, 0, 128]);
 });
 
 test('Lanczos3 downsampling closely tracks all available 64-to-8 blue fixtures', async (context) => {
@@ -294,7 +301,9 @@ test('Lanczos3 downsampling closely tracks all available 64-to-8 blue fixtures',
     absoluteError += delta.absolute;
     maximumError = Math.max(maximumError, delta.maximum);
   }
-  context.diagnostic(`${exact}/${fixtureFiles.length} exact; ${differingChannels} differing channels; absolute error ${absoluteError}; max ${maximumError}`);
+  context.diagnostic(
+    `${exact}/${fixtureFiles.length} exact; ${differingChannels} differing channels; absolute error ${absoluteError}; max ${maximumError}`,
+  );
   assert.equal(fixtureFiles.length, 80);
   assert.ok(exact >= 40);
   assert.ok(maximumError <= 2);
