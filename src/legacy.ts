@@ -800,6 +800,51 @@ export interface EllipticalGradientSpec {
   easing?: GradientEasing;
 }
 
+export interface LinearGradientSpec {
+  width: number;
+  height: number;
+  angle?: number;
+  stops: readonly GradientStop[];
+  easing?: GradientEasing;
+}
+
+export function renderLinearGradient({ width, height, angle = 180, stops, easing = 'linear' }: LinearGradientSpec): Uint8ClampedArray {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+    throw new Error('Linear gradient dimensions must be positive integers.');
+  }
+  if (stops.length < 2) throw new Error('At least two colour stops are required.');
+  const orderedStops = stops.map((stop) => ({ ...stop, rgba: parseRgba(stop.color) })).sort((a, b) => a.offset - b.offset);
+  if (orderedStops[0].offset < 0 || orderedStops[orderedStops.length - 1].offset > 1) {
+    throw new Error('Stop offsets must be between zero and one.');
+  }
+
+  const radians = (angle * Math.PI) / 180;
+  const directionX = Math.sin(radians);
+  const directionY = -Math.cos(radians);
+  const extent = (Math.abs(directionX) * Math.max(1, width - 1) + Math.abs(directionY) * Math.max(1, height - 1)) / 2 || 1;
+  const pixels = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const centeredX = width === 1 ? 0 : x - (width - 1) / 2;
+      const centeredY = height === 1 ? 0 : y - (height - 1) / 2;
+      const position = clamp01((centeredX * directionX + centeredY * directionY + extent) / (2 * extent));
+      let rightIndex = orderedStops.findIndex((stop) => stop.offset >= position);
+      if (rightIndex < 0) rightIndex = orderedStops.length - 1;
+      const leftIndex = Math.max(0, rightIndex - 1);
+      const left = orderedStops[leftIndex];
+      const right = orderedStops[rightIndex];
+      const span = right.offset - left.offset;
+      const rawAmount = span === 0 ? 0 : (position - left.offset) / span;
+      const amount = applyEasing(clamp01(rawAmount), right.easing || left.easing || easing);
+      const offset = (y * width + x) * 4;
+      for (let channel = 0; channel < 4; channel += 1) {
+        pixels[offset + channel] = Math.round(left.rgba[channel] * (1 - amount) + right.rgba[channel] * amount);
+      }
+    }
+  }
+  return pixels;
+}
+
 export function renderEllipticalGradient({
   width,
   height,

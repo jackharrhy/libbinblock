@@ -298,7 +298,7 @@ app.innerHTML = `
     <section class="section notebook-section">
       <h2><span>0</span> BinScript notebook <code>live recipe source</code></h2>
       <div class="notebook-intro">
-        <div><strong>Code is the interface.</strong><p>Edit the recipe directly. Color and number controls rewrite their literals; every render stage compiles into an inline preview.</p></div>
+        <div><strong>Code is the interface.</strong><p>Compose images with bindings, fluent operations, and CSS-inspired gradients. BinScript lowers into the existing typed recipe engine.</p></div>
         <div class="notebook-actions"><button id="run-notebook" type="button">run <kbd>⌘↵</kbd></button><button id="reset-notebook" type="button">reset example</button><output id="notebook-status">starting...</output></div>
       </div>
       <div id="binscript-editor" aria-label="BinScript recipe editor"></div>

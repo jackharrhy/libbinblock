@@ -153,6 +153,15 @@ export type ImageNode =
     }
   | {
       op: 'gradient';
+      shape: 'linear';
+      width: IntegerValue;
+      height: IntegerValue;
+      angle: NumberValue;
+      easing: 'linear' | 'smoothstep' | 'legacy';
+      stops: GradientStop[];
+    }
+  | {
+      op: 'gradient';
       shape: 'ellipse';
       width: IntegerValue;
       height: IntegerValue;
@@ -212,6 +221,15 @@ export const ImageNodeSchema: z.ZodType<ImageNode> = z.lazy(() =>
       preset: StringValueSchema,
       rotation: IntegerValueSchema.default(0),
       color: ColorValueSchema.default('#000000'),
+    }),
+    z.strictObject({
+      op: z.literal('gradient'),
+      shape: z.literal('linear'),
+      width: IntegerValueSchema,
+      height: IntegerValueSchema,
+      angle: NumberValueSchema.default(180),
+      easing: z.enum(['linear', 'smoothstep', 'legacy']).default('linear'),
+      stops: z.array(GradientStopSchema).min(2),
     }),
     z.strictObject({
       op: z.literal('gradient'),

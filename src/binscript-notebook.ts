@@ -1,160 +1,65 @@
 import { basicSetup } from 'codemirror';
-import { json, jsonLanguage } from '@codemirror/lang-json';
+import { StreamLanguage } from '@codemirror/language';
 import { lintGutter, setDiagnostics } from '@codemirror/lint';
 import type { Diagnostic } from '@codemirror/lint';
 import { StateEffect, StateField } from '@codemirror/state';
 import { Decoration, EditorView, keymap, ViewPlugin, WidgetType } from '@codemirror/view';
 import type { DecorationSet, ViewUpdate } from '@codemirror/view';
+import { BinScriptError, compileBinScript } from './binscript-language.js';
+import type { BinScriptProjectionTarget } from './binscript-language.js';
 import { compileRecipe } from './recipe-executor.js';
 import type { ImageData, RecipeArtifact } from './recipe-executor.js';
-import type { RecipeDocument } from './recipe-schema.js';
 
-const NUMBER_CONTROLS: Readonly<Record<string, { min: number; max: number; step: number }>> = {
-  width: { min: 1, max: 256, step: 1 },
-  height: { min: 1, max: 256, step: 1 },
-  opacity: { min: 0, max: 1, step: 0.05 },
-  rotation: { min: -4, max: 4, step: 1 },
-  radiusX: { min: 0.01, max: 256, step: 0.05 },
-  radiusY: { min: 0.01, max: 256, step: 0.05 },
-  offsetX: { min: -256, max: 256, step: 1 },
-  offsetY: { min: -256, max: 256, step: 1 },
-};
+export const STARTER_SOURCE = `// BinScript keeps the recipe engine, without making you author its JSON.
+import "bingen/basic"
 
-export const STARTER_RECIPE: RecipeDocument = {
-  format: 'bin-block-recipe/v1',
-  profile: 'numeric-srgb/v1',
-  metadata: {
-    name: 'BinScript notebook starter',
+size := 64
+
+colors := palette(
+  coral: #ff6030,
+  cyan: #10d9d2,
+)
+
+blocks := colors.map(fill).size(size)
+blocks
+
+light := lg(
+  135deg,
+  transparent 0%,
+  #ffffff 100%,
+).size(size)
+light
+
+tiles := blocks.mask(light)
+tiles
+`;
+
+export const STARTER_RECIPE = compileBinScript(STARTER_SOURCE).document;
+
+export function recipeProjectionTargets(source: string): BinScriptProjectionTarget[] {
+  return compileBinScript(source).projections;
+}
+
+const binscriptLanguage = StreamLanguage.define<null>({
+  startState: () => null,
+  token(stream) {
+    if (stream.eatSpace()) return null;
+    if (stream.match('//')) {
+      stream.skipToEnd();
+      return 'comment';
+    }
+    if (stream.match(/^#[\da-fA-F]{6}(?:[\da-fA-F]{2})?/)) return 'color';
+    if (stream.match(/^-?(?:\d+(?:\.\d*)?|\.\d+)(?:%|deg)?/)) return 'number';
+    if (stream.match(/^import\b/)) return 'keyword';
+    if (stream.match(/^"(?:[^"\\]|\\.)*"/)) return 'string';
+    if (stream.match(/^(?:palette|fill|linear-gradient|lin-grad|lg|radial-gradient|rad-grad|rg|map|size|mask|preview)\b/))
+      return 'variableName';
+    if (stream.match(/^[A-Za-z_][\w-]*/)) return 'variableName';
+    if (stream.match(':=') || stream.match(/[.,:()]/)) return 'operator';
+    stream.next();
+    return null;
   },
-  values: {},
-  assets: {},
-  definitions: {},
-  stages: [
-    {
-      type: 'render',
-      id: 'base-colors',
-      forEach: {
-        color: {
-          source: 'values',
-          values: [
-            { id: 'coral', value: '#ff6030' },
-            { id: 'cyan', value: '#10d9d2' },
-          ],
-        },
-      },
-      key: ['get', 'id', ['var', 'color']],
-      path: ['concat', 'notebook/base/', ['get', 'id', ['var', 'color']], '.png'],
-      properties: {
-        color: ['get', 'value', ['var', 'color']],
-      },
-      image: {
-        op: 'fill',
-        width: 64,
-        height: 64,
-        color: ['get', 'value', ['var', 'color']],
-      },
-    },
-    {
-      type: 'render',
-      id: 'gradient-fields',
-      forEach: {
-        preset: {
-          source: 'values',
-          values: ['radial-in', 'diagonal'],
-        },
-      },
-      key: ['var', 'preset'],
-      path: ['concat', 'notebook/fields/', ['var', 'preset'], '.png'],
-      properties: {
-        preset: ['var', 'preset'],
-      },
-      image: {
-        op: 'gradient',
-        shape: 'preset',
-        width: 64,
-        height: 64,
-        preset: ['var', 'preset'],
-        rotation: 0,
-        color: '#ffffff',
-      },
-    },
-    {
-      type: 'render',
-      id: 'masked-tiles',
-      forEach: {
-        color: { source: 'stage', stage: 'base-colors' },
-        field: { source: 'stage', stage: 'gradient-fields' },
-      },
-      key: ['concat', ['get', 'key', ['var', 'color']], '-', ['get', 'key', ['var', 'field']]],
-      path: ['concat', 'notebook/tiles/', ['get', 'key', ['var', 'color']], '-', ['get', 'key', ['var', 'field']], '.png'],
-      properties: {},
-      image: {
-        op: 'apply-mask',
-        source: { op: 'input', binding: 'color' },
-        mask: { op: 'input', binding: 'field' },
-        mode: 'replace',
-      },
-    },
-  ],
-  outputs: [{ stage: 'masked-tiles' }],
-};
-
-export const STARTER_SOURCE = JSON.stringify(STARTER_RECIPE, null, 2);
-
-export type ProjectionTarget =
-  | { kind: 'color'; from: number; to: number; value: string }
-  | { kind: 'number'; from: number; to: number; value: number; property: string; min: number; max: number; step: number }
-  | { kind: 'stage'; from: number; to: number; at: number; stageId: string };
-
-function parsedNodeValue(source: string, from: number, to: number): unknown {
-  try {
-    return JSON.parse(source.slice(from, to));
-  } catch {
-    return undefined;
-  }
-}
-
-function propertyName(source: string, from: number, to: number): string | undefined {
-  const propertySource = source.slice(from, to);
-  const match = /^\s*"([^"]+)"\s*:/.exec(propertySource);
-  return match?.[1];
-}
-
-export function recipeProjectionTargets(source: string): ProjectionTarget[] {
-  const targets: ProjectionTarget[] = [];
-  const tree = jsonLanguage.parser.parse(source);
-  tree.iterate({
-    enter(node) {
-      if (node.name === 'String') {
-        const value = parsedNodeValue(source, node.from, node.to);
-        if (typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)) {
-          targets.push({ kind: 'color', from: node.from, to: node.to, value });
-        }
-        return;
-      }
-      if (node.name === 'Number' && node.node.parent?.name === 'Property') {
-        const name = propertyName(source, node.node.parent.from, node.node.parent.to);
-        const control = name ? NUMBER_CONTROLS[name] : undefined;
-        const value = parsedNodeValue(source, node.from, node.to);
-        if (control && typeof value === 'number') {
-          targets.push({ kind: 'number', from: node.from, to: node.to, value, property: name!, ...control });
-        }
-        return;
-      }
-      if (node.name !== 'Object') return;
-      const value = parsedNodeValue(source, node.from, node.to);
-      if (value && typeof value === 'object' && 'type' in value && 'id' in value) {
-        const candidate = value as { type?: unknown; id?: unknown };
-        if (candidate.type === 'render' && typeof candidate.id === 'string') {
-          const lineBreak = source.indexOf('\n', node.to);
-          const at = lineBreak === -1 ? source.length : lineBreak + 1;
-          targets.push({ kind: 'stage', from: node.from, to: node.to, at, stageId: candidate.id });
-        }
-      }
-    },
-  });
-  return targets.sort((left, right) => left.from - right.from || left.to - right.to);
-}
+});
 
 class ColorWidget extends WidgetType {
   constructor(
@@ -169,6 +74,13 @@ class ColorWidget extends WidgetType {
     return this.value === other.value && this.from === other.from && this.to === other.to;
   }
 
+  updateDOM(dom: HTMLElement): boolean {
+    const input = dom.querySelector('input');
+    if (!(input instanceof HTMLInputElement)) return false;
+    if (document.activeElement !== input) input.value = this.value;
+    return true;
+  }
+
   toDOM(view: EditorView): HTMLElement {
     const label = document.createElement('label');
     label.className = 'binscript-color-control';
@@ -178,7 +90,7 @@ class ColorWidget extends WidgetType {
     input.value = this.value;
     input.setAttribute('aria-label', `Edit color ${this.value}`);
     input.addEventListener('input', () => {
-      view.dispatch({ changes: { from: this.from, to: this.to, insert: JSON.stringify(input.value) } });
+      view.dispatch({ changes: { from: this.from, to: this.to, insert: input.value } });
     });
     label.append(input);
     return label;
@@ -190,7 +102,7 @@ class ColorWidget extends WidgetType {
 }
 
 class NumberWidget extends WidgetType {
-  constructor(private readonly target: Extract<ProjectionTarget, { kind: 'number' }>) {
+  constructor(private readonly target: Extract<BinScriptProjectionTarget, { kind: 'number' }>) {
     super();
   }
 
@@ -198,24 +110,31 @@ class NumberWidget extends WidgetType {
     return this.target.value === other.target.value && this.target.from === other.target.from && this.target.to === other.target.to;
   }
 
+  updateDOM(dom: HTMLElement): boolean {
+    const input = dom.querySelector('input');
+    if (!(input instanceof HTMLInputElement)) return false;
+    if (document.activeElement !== input) input.value = String(this.target.value);
+    dom.title = `${this.target.property}: ${this.target.value}`;
+    return true;
+  }
+
   toDOM(view: EditorView): HTMLElement {
     const label = document.createElement('label');
     label.className = 'binscript-number-control';
-    label.title = `Edit ${this.target.property}`;
+    label.title = `${this.target.property}: ${this.target.value}`;
     const input = document.createElement('input');
-    input.type = this.target.property === 'opacity' ? 'range' : 'number';
+    input.type = 'range';
     input.min = String(this.target.min);
     input.max = String(this.target.max);
     input.step = String(this.target.step);
     input.value = String(this.target.value);
-    input.setAttribute('aria-label', `Edit ${this.target.property}`);
-    const value = document.createElement('output');
-    value.textContent = String(this.target.value);
+    input.setAttribute('aria-label', `Adjust ${this.target.property}, current value ${this.target.value}`);
     input.addEventListener('input', () => {
-      value.textContent = input.value;
-      view.dispatch({ changes: { from: this.target.from, to: this.target.to, insert: input.value } });
+      label.title = `${this.target.property}: ${input.value}`;
+      input.setAttribute('aria-label', `Adjust ${this.target.property}, current value ${input.value}`);
+      view.dispatch({ changes: { from: this.target.from, to: this.target.to, insert: `${input.value}${this.target.suffix}` } });
     });
-    label.append(input, value);
+    label.append(input);
     return label;
   }
 
@@ -225,7 +144,12 @@ class NumberWidget extends WidgetType {
 }
 
 function controlDecorations(view: EditorView): DecorationSet {
-  const targets = recipeProjectionTargets(view.state.doc.toString());
+  let targets: BinScriptProjectionTarget[];
+  try {
+    targets = recipeProjectionTargets(view.state.doc.toString());
+  } catch {
+    return Decoration.none;
+  }
   const decorations = targets.flatMap((target) => {
     if (target.kind === 'color')
       return [Decoration.widget({ widget: new ColorWidget(target.from, target.to, target.value), side: 1 }).range(target.to)];
@@ -340,6 +264,15 @@ export function errorSummary(error: unknown): string {
 
 function diagnosticFor(error: unknown, documentLength: number): Diagnostic {
   const message = errorSummary(error);
+  if (error instanceof BinScriptError) {
+    const from = Math.min(error.from, Math.max(0, documentLength - 1));
+    return {
+      from,
+      to: Math.min(Math.max(error.to, from + 1), documentLength),
+      severity: 'error',
+      message,
+    };
+  }
   const position = /position (\d+)/i.exec(message)?.[1];
   const from = position ? Math.min(Number(position), Math.max(0, documentLength - 1)) : 0;
   return {
@@ -379,11 +312,11 @@ export function createRecipeNotebook({
     const version = ++evaluationVersion;
     status.textContent = 'compiling...';
     try {
-      const input: unknown = JSON.parse(source);
-      const result = await compileRecipe(input, { maximumArtifacts: 2_000 });
+      const compiled = compileBinScript(source);
+      const result = await compileRecipe(compiled.document, { maximumArtifacts: 2_000 });
       if (version !== evaluationVersion || source !== view.state.doc.toString()) return;
-      const targets = recipeProjectionTargets(source).filter(
-        (target): target is Extract<ProjectionTarget, { kind: 'stage' }> => target.kind === 'stage',
+      const targets = compiled.projections.filter(
+        (target): target is Extract<BinScriptProjectionTarget, { kind: 'stage' }> => target.kind === 'stage',
       );
       const previews = targets.map((target) => {
         const artifacts = result.stages.get(target.stageId) ?? [];
@@ -399,7 +332,7 @@ export function createRecipeNotebook({
       const totalArtifacts = [...result.stages.values()].reduce((total, artifacts) => total + artifacts.length, 0);
       status.textContent = `${totalArtifacts} artifacts · ${previews.length} live stages`;
     } catch (error: unknown) {
-      if (version !== evaluationVersion) return;
+      if (version !== evaluationVersion || source !== view.state.doc.toString()) return;
       view.dispatch({ effects: setStagePreviews.of([]) }, setDiagnostics(view.state, [diagnosticFor(error, view.state.doc.length)]));
       status.textContent = errorSummary(error);
     }
@@ -415,7 +348,7 @@ export function createRecipeNotebook({
     doc: initialSource,
     extensions: [
       basicSetup,
-      json(),
+      binscriptLanguage,
       lintGutter(),
       controlPlugin,
       previewField,

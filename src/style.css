@@ -151,21 +151,9 @@ h2 code {
   border: 0;
   padding: 0;
 }
-.binscript-number-control input[type='number'] {
-  width: 58px;
-  border: 0;
-  font:
-    11px ui-monospace,
-    monospace;
-}
 .binscript-number-control input[type='range'] {
-  width: 82px;
-}
-.binscript-number-control output {
-  min-width: 30px;
-  font:
-    10px ui-monospace,
-    monospace;
+  width: 72px;
+  margin: 0;
 }
 .binscript-stage-preview {
   margin: 8px 18px 12px 46px;

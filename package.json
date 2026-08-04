@@ -19,7 +19,6 @@
     "analyze:duplicates": "tsx scripts/analyze-duplicates.ts"
   },
   "dependencies": {
-    "@codemirror/lang-json": "^6.0.2",
     "@codemirror/language": "^6.12.4",
     "@codemirror/lint": "^6.9.7",
     "@codemirror/state": "^6.7.1",

@@ -1,6 +1,13 @@
 import { PRESETS, renderMask } from './core.js';
 import type { PresetName } from './core.js';
-import { compositeSourceOver, fillRGBA, renderEllipticalGradient, resizeLanczos3RGBA, rotateRGBA90 } from './legacy.js';
+import {
+  compositeSourceOver,
+  fillRGBA,
+  renderEllipticalGradient,
+  renderLinearGradient,
+  resizeLanczos3RGBA,
+  rotateRGBA90,
+} from './legacy.js';
 import { evaluateExpressionValue } from './recipe-expressions.js';
 import { expandStageBindings, sortRecipeStages } from './recipe-graph.js';
 import { parseRecipeDocument } from './recipe-schema.js';
@@ -232,6 +239,23 @@ export const BUILTIN_IMAGE_OPERATIONS = {
       const color = rgb(string(node.color, context, 'gradient color'));
       for (let offset = 0; offset < pixels.length; offset += 4) pixels.set(color, offset);
       return { width, height, pixels };
+    }
+    if (node.shape === 'linear') {
+      return {
+        width,
+        height,
+        pixels: renderLinearGradient({
+          width,
+          height,
+          angle: number(node.angle, context, 'gradient angle'),
+          easing: node.easing,
+          stops: node.stops.map((stop) => ({
+            offset: number(stop.offset, context, 'gradient stop offset', 0, 1),
+            color: string(stop.color, context, 'gradient stop color'),
+            easing: stop.easing,
+          })),
+        }),
+      };
     }
     return {
       width,

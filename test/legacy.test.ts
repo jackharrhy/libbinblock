@@ -19,6 +19,7 @@ import {
   getResultRecipe,
   parseHistoricVariantName,
   renderEllipticalGradient,
+  renderLinearGradient,
   renderLegacyAlphaMap,
   renderModding1900,
   renderOut4Layer,
@@ -279,6 +280,31 @@ test('elliptical multi-stop gradients support unequal radii, rotation, alpha, an
   assert.deepEqual(Array.from(pixels.slice((2 * 5 + 2) * 4, (2 * 5 + 3) * 4)), [255, 255, 255, 255]);
   assert.deepEqual(Array.from(pixels.slice(2 * 5 * 4, (2 * 5 + 1) * 4)), [0, 0, 0, 0]);
   assert.deepEqual(Array.from(pixels.slice((1 * 5 + 2) * 4, (1 * 5 + 3) * 4)), [255, 0, 0, 128]);
+});
+
+test('linear gradients follow CSS angle orientation and interpolate RGBA stops', () => {
+  const pixels = renderLinearGradient({
+    width: 3,
+    height: 1,
+    angle: 90,
+    stops: [
+      { offset: 0, color: '#00000000' },
+      { offset: 1, color: '#ffffff' },
+    ],
+  });
+  assert.deepEqual([...pixels], [0, 0, 0, 0, 128, 128, 128, 128, 255, 255, 255, 255]);
+
+  const diagonal = renderLinearGradient({
+    width: 5,
+    height: 3,
+    angle: 45,
+    stops: [
+      { offset: 0, color: '#000000' },
+      { offset: 1, color: '#ffffff' },
+    ],
+  });
+  assert.equal(diagonal[0], 85);
+  assert.equal(diagonal[(2 * 5 + 4) * 4], 170);
 });
 
 test('Lanczos3 downsampling closely tracks all available 64-to-8 blue fixtures', async (context) => {
