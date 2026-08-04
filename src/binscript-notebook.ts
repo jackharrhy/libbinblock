@@ -97,7 +97,7 @@ class ColorWidget extends WidgetType {
   }
 
   ignoreEvent(): boolean {
-    return false;
+    return true;
   }
 }
 
@@ -139,7 +139,7 @@ class NumberWidget extends WidgetType {
   }
 
   ignoreEvent(): boolean {
-    return false;
+    return true;
   }
 }
 
@@ -204,13 +204,6 @@ class StagePreviewWidget extends WidgetType {
   toDOM(): HTMLElement {
     const panel = document.createElement('section');
     panel.className = 'binscript-stage-preview';
-    const heading = document.createElement('div');
-    heading.className = 'binscript-stage-preview-heading';
-    const title = document.createElement('strong');
-    title.textContent = this.preview.stageId;
-    const count = document.createElement('code');
-    count.textContent = `${this.preview.artifactCount} artifact${this.preview.artifactCount === 1 ? '' : 's'}`;
-    heading.append(title, count);
     const strip = document.createElement('div');
     strip.className = 'binscript-preview-strip';
     for (const [index, image] of this.preview.images.entries()) {
@@ -226,7 +219,7 @@ class StagePreviewWidget extends WidgetType {
       remainder.textContent = `+${this.preview.artifactCount - this.preview.images.length}`;
       strip.append(remainder);
     }
-    panel.append(heading, strip);
+    panel.append(strip);
     return panel;
   }
 }

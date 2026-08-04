@@ -156,7 +156,10 @@ h2 code {
   margin: 0;
 }
 .binscript-stage-preview {
-  margin: 8px 18px 12px 46px;
+  display: inline-block;
+  width: fit-content;
+  max-width: calc(100% - 64px);
+  margin: 2px 0 5px 46px;
   border: 1px solid #111;
   background-color: #e7e7e7;
   background-image:
@@ -169,23 +172,15 @@ h2 code {
     -5px 0;
   background-size: 10px 10px;
 }
-.binscript-stage-preview-heading {
-  display: flex;
-  justify-content: space-between;
-  padding: 5px 8px;
-  border-bottom: 1px solid #111;
-  background: #fff;
-  font:
-    12px ui-monospace,
-    monospace;
-}
 .binscript-preview-strip {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
-  min-height: 76px;
-  padding: 8px;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 6px;
 }
 canvas.binscript-preview-canvas {
   width: 64px;
@@ -541,6 +536,7 @@ canvas {
     min-height: 440px;
   }
   .binscript-stage-preview {
+    max-width: calc(100% - 16px);
     margin-left: 8px;
   }
 }
