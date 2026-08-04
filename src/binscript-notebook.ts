@@ -10,8 +10,7 @@ import type { BinScriptProjectionTarget } from './binscript-language.js';
 import { compileRecipe } from './recipe-executor.js';
 import type { ImageData, RecipeArtifact } from './recipe-executor.js';
 
-export const STARTER_SOURCE = `// BinScript keeps the recipe engine, without making you author its JSON.
-import "bingen/basic"
+export const STARTER_SOURCE = `import "bingen/basic"
 
 size := 64
 
