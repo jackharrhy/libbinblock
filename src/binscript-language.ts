@@ -45,7 +45,14 @@ interface MemberExpression {
   to: number;
 }
 
-type Expression = LiteralExpression | IdentifierExpression | CallExpression | MemberExpression;
+interface ArrayExpression {
+  kind: 'array';
+  items: Expression[];
+  from: number;
+  to: number;
+}
+
+type Expression = LiteralExpression | IdentifierExpression | CallExpression | MemberExpression | ArrayExpression;
 
 interface ImportStatement {
   kind: 'import';
@@ -82,7 +89,7 @@ export type BinScriptProjectionTarget =
       step: number;
       suffix: string;
     }
-  | { kind: 'stage'; from: number; to: number; at: number; stageId: string };
+  | { kind: 'stage'; from: number; to: number; at: number; stageIds: string[] };
 
 export class BinScriptError extends Error {
   constructor(
@@ -114,7 +121,7 @@ function tokenize(source: string): Token[] {
       index += 2;
       continue;
     }
-    if ('(),.:;'.includes(character)) {
+    if ('[](),.:;'.includes(character)) {
       tokens.push({ kind: 'symbol', value: character, from: index, to: index + 1 });
       index += 1;
       continue;
@@ -215,6 +222,16 @@ class Parser {
 
   private parsePrimary(): Expression {
     const token = this.take();
+    if (token.kind === 'symbol' && token.value === '[') {
+      const items: Expression[] = [];
+      while (this.peek().value !== ']') {
+        if (this.peek().kind === 'eof') this.fail('Expected ] after array items.', this.peek());
+        items.push(this.parseExpression());
+        if (!this.matches('symbol', ',')) break;
+      }
+      const close = this.expect('symbol', ']', 'Expected ] after array items.');
+      return { kind: 'array', items, from: token.from, to: close.to };
+    }
     if (token.kind === 'number') return { kind: 'literal', value: Number(token.value), token, from: token.from, to: token.to };
     if (token.kind === 'color' || token.kind === 'string') {
       return { kind: 'literal', value: token.value, token, from: token.from, to: token.to };
@@ -334,7 +351,21 @@ interface FunctionReference {
   name: string;
 }
 
-type RuntimeValue = PalettePlan | ImagesPlan | PaletteFillPlan | MaskPlan | StageReference | FunctionReference | string | number;
+interface ArrayValue {
+  kind: 'array';
+  items: RuntimeValue[];
+}
+
+type RuntimeValue =
+  | PalettePlan
+  | ImagesPlan
+  | PaletteFillPlan
+  | MaskPlan
+  | StageReference
+  | FunctionReference
+  | ArrayValue
+  | string
+  | number;
 
 const NAMED_COLORS: Readonly<Record<string, string>> = {
   black: '#000000',
@@ -454,10 +485,14 @@ export function compileBinScript(source: string): CompiledBinScript {
       projectColors(expression.object);
       for (const argument of expression.args) projectColors(argument);
     }
+    if (expression.kind === 'array') {
+      for (const item of expression.items) projectColors(item);
+    }
   };
 
   const evaluate = (expression: Expression): RuntimeValue => {
     if (expression.kind === 'literal') return expression.value;
+    if (expression.kind === 'array') return { kind: 'array', items: expression.items.map(evaluate) };
     if (expression.kind === 'identifier') {
       const value = environment.get(expression.name);
       if (value !== undefined) return value;
@@ -617,6 +652,19 @@ export function compileBinScript(source: string): CompiledBinScript {
     throw new BinScriptError(`Unknown method: ${expression.name}`, expression.from, expression.to);
   };
 
+  const displayedStages = (value: RuntimeValue): string[] | undefined => {
+    if (typeof value !== 'object') return undefined;
+    if (value.kind === 'stage') return [value.stageId];
+    if (value.kind !== 'array') return undefined;
+    const stageIds: string[] = [];
+    for (const item of value.items) {
+      const nested = displayedStages(item);
+      if (!nested) return undefined;
+      stageIds.push(...nested);
+    }
+    return stageIds;
+  };
+
   for (const statement of statements) {
     if (statement.kind === 'import') {
       if (statement.preamble !== 'bingen/basic') {
@@ -627,20 +675,21 @@ export function compileBinScript(source: string): CompiledBinScript {
     projectColors(statement.expression);
     if (statement.kind === 'expression') {
       const value = evaluate(statement.expression);
-      if (typeof value !== 'object' || value.kind !== 'stage') {
+      const stageIds = displayedStages(value);
+      if (!stageIds?.length) {
         throw new BinScriptError(
-          'Standalone expressions must resolve to a bound image set.',
+          'Standalone expressions must resolve to one or more bound image sets.',
           statement.expression.from,
           statement.expression.to,
         );
       }
-      outputs.push(value.stageId);
+      outputs.push(...stageIds);
       projections.push({
         kind: 'stage',
         from: statement.expression.from,
         to: statement.expression.to,
         at: statement.expression.to,
-        stageId: value.stageId,
+        stageIds,
       });
       continue;
     }
@@ -667,6 +716,10 @@ export function compileBinScript(source: string): CompiledBinScript {
       throw new BinScriptError('Bindings must produce a palette or image set.', statement.from, statement.to);
     }
     if (value.kind === 'palette') {
+      environment.set(statement.name, value);
+      continue;
+    }
+    if (value.kind === 'array') {
       environment.set(statement.name, value);
       continue;
     }

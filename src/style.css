@@ -103,6 +103,14 @@ input {
   background-size: 10px 10px;
 }
 
+.binscript-preview-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 100%;
+}
+
 .binscript-preview-strip {
   display: flex;
   align-items: center;

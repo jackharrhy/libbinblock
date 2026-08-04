@@ -12,19 +12,19 @@ test('starter BinScript lowers and compiles dependent image bindings', async () 
     [
       ['blocks', 16],
       ['top-down', 1],
-      ['top-down-colors', 16],
       ['bottom-up', 1],
-      ['bottom-up-colors', 16],
       ['left-right', 1],
-      ['left-right-colors', 16],
       ['right-left', 1],
+      ['top-down-colors', 16],
+      ['bottom-up-colors', 16],
+      ['left-right-colors', 16],
       ['right-left-colors', 16],
     ],
   );
   assert.equal(result.outputs.length, 84);
   assert.deepEqual(
     result.stages.get('blocks')?.map((artifact) => [artifact.key, artifact.properties.color]),
-    DEFAULT_PALETTE.map(([id, color]) => [id.replaceAll('_', '-'), color]),
+    DEFAULT_PALETTE.map(([id, color]) => [id.replace(/^col_/, '').replaceAll('_', '-'), color]),
   );
 });
 
@@ -49,17 +49,11 @@ test('notebook projections retain exact source ranges for controls and stages', 
   const numbers = targets.filter((target) => target.kind === 'number');
 
   assert.deepEqual(
-    stages.map((target) => target.stageId),
+    stages.map((target) => target.stageIds),
     [
-      'blocks',
-      'top-down',
-      'top-down-colors',
-      'bottom-up',
-      'bottom-up-colors',
-      'left-right',
-      'left-right-colors',
-      'right-left',
-      'right-left-colors',
+      ['blocks'],
+      ['bottom-up', 'top-down', 'left-right', 'right-left'],
+      ['top-down-colors', 'bottom-up-colors', 'left-right-colors', 'right-left-colors'],
     ],
   );
   assert.deepEqual(
@@ -146,6 +140,19 @@ test('BinScript bindings stay pure until referenced as standalone expressions', 
   const stages = displayed.projections.filter((target) => target.kind === 'stage');
   assert.equal(stages.length, 1);
   assert.equal(displayed.document.outputs[0].stage, 'block');
+});
+
+test('BinScript arrays preserve nested image-set order in one display projection', () => {
+  const compiled = compileBinScript(`red := fill(#ff0000)
+blue := fill(#0000ff)
+pair := [red, blue]
+[pair, red]`);
+  assert.deepEqual(compiled.document.outputs, [{ stage: 'red' }, { stage: 'blue' }]);
+  const displays = compiled.projections.filter((target) => target.kind === 'stage');
+  assert.deepEqual(
+    displays.map((target) => target.stageIds),
+    [['red', 'blue', 'red']],
+  );
 });
 
 test('BinScript preambles use explicit import path strings', () => {

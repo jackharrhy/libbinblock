@@ -15,46 +15,41 @@ export const STARTER_SOURCE = `import "bingen/basic"
 size := 64
 
 colors := palette(
-  col-black-1: #000000,
-  col-black-2: #808080,
-  col-black-3: #c0c0c0,
-  col-black-4: #ffffff,
-  col-blue-lo: #000080,
-  col-blue-hi: #0000ff,
-  col-green-lo: #008000,
-  col-green-hi: #00ff00,
-  col-cyan-lo: #008080,
-  col-cyan-hi: #00ffff,
-  col-red-lo: #800000,
-  col-red-hi: #ff0000,
-  col-yellow-lo: #808000,
-  col-yellow-hi: #ffff00,
-  col-pink-lo: #800080,
-  col-pink-hi: #ff00ff,
+  black-1: #000000,
+  black-2: #808080,
+  black-3: #c0c0c0,
+  black-4: #ffffff,
+  blue-lo: #000080,
+  blue-hi: #0000ff,
+  green-lo: #008000,
+  green-hi: #00ff00,
+  cyan-lo: #008080,
+  cyan-hi: #00ffff,
+  red-lo: #800000,
+  red-hi: #ff0000,
+  yellow-lo: #808000,
+  yellow-hi: #ffff00,
+  pink-lo: #800080,
+  pink-hi: #ff00ff,
 )
+
 
 blocks := colors.map(fill).size(size)
 blocks
 
+
 top-down := lg(180deg, white, transparent).size(size)
-top-down
-top-down-colors := blocks.mask(top-down)
-top-down-colors
-
 bottom-up := lg(0deg, white, transparent).size(size)
-bottom-up
-bottom-up-colors := blocks.mask(bottom-up)
-bottom-up-colors
-
 left-right := lg(90deg, white, transparent).size(size)
-left-right
-left-right-colors := blocks.mask(left-right)
-left-right-colors
-
 right-left := lg(270deg, white, transparent).size(size)
-right-left
+[bottom-up, top-down, left-right, right-left]
+
+
+top-down-colors := blocks.mask(top-down)
+bottom-up-colors := blocks.mask(bottom-up)
+left-right-colors := blocks.mask(left-right)
 right-left-colors := blocks.mask(right-left)
-right-left-colors
+[top-down-colors, bottom-up-colors, left-right-colors, right-left-colors]
 `;
 
 export const STARTER_RECIPE = compileBinScript(STARTER_SOURCE).document;
@@ -78,7 +73,7 @@ const binscriptLanguage = StreamLanguage.define<null>({
     if (stream.match(/^(?:palette|fill|linear-gradient|lin-grad|lg|radial-gradient|rad-grad|rg|map|size|mask|preview)\b/))
       return 'variableName';
     if (stream.match(/^[A-Za-z_][\w-]*/)) return 'variableName';
-    if (stream.match(':=') || stream.match(/[.,:()]/)) return 'operator';
+    if (stream.match(':=') || stream.match(/[.,:()]/) || stream.match('[') || stream.match(']')) return 'operator';
     stream.next();
     return null;
   },
@@ -199,10 +194,14 @@ const controlPlugin = ViewPlugin.fromClass(
 
 interface StagePreview {
   at: number;
+  rows: StagePreviewRow[];
+  version: number;
+}
+
+interface StagePreviewRow {
   stageId: string;
   images: readonly ImageData[];
   artifactCount: number;
-  version: number;
 }
 
 const setStagePreviews = StateEffect.define<readonly StagePreview[]>();
@@ -221,33 +220,44 @@ class StagePreviewWidget extends WidgetType {
   }
 
   eq(other: StagePreviewWidget): boolean {
-    return this.preview.stageId === other.preview.stageId && this.preview.version === other.preview.version;
+    return (
+      this.preview.version === other.preview.version &&
+      this.preview.rows.length === other.preview.rows.length &&
+      this.preview.rows.every((row, index) => row.stageId === other.preview.rows[index]?.stageId)
+    );
   }
 
   get estimatedHeight(): number {
-    return 78;
+    return this.preview.rows.length * 78;
   }
 
   toDOM(view: EditorView): HTMLElement {
+    const group = document.createElement('div');
+    group.className = 'binscript-preview-group';
+    for (const row of this.preview.rows) group.append(this.rowDOM(row));
+    queueMicrotask(() => view.requestMeasure());
+    return group;
+  }
+
+  private rowDOM(row: StagePreviewRow): HTMLElement {
     const panel = document.createElement('section');
     panel.className = 'binscript-stage-preview';
     const strip = document.createElement('div');
     strip.className = 'binscript-preview-strip';
-    for (const [index, image] of this.preview.images.entries()) {
+    for (const [index, image] of row.images.entries()) {
       const canvas = document.createElement('canvas');
       canvas.className = 'binscript-preview-canvas';
-      canvas.setAttribute('aria-label', `${this.preview.stageId} preview ${index + 1}`);
+      canvas.setAttribute('aria-label', `${row.stageId} preview ${index + 1}`);
       drawPreview(canvas, image);
       strip.append(canvas);
     }
-    if (this.preview.artifactCount > this.preview.images.length) {
+    if (row.artifactCount > row.images.length) {
       const remainder = document.createElement('span');
       remainder.className = 'binscript-preview-remainder';
-      remainder.textContent = `+${this.preview.artifactCount - this.preview.images.length}`;
+      remainder.textContent = `+${row.artifactCount - row.images.length}`;
       strip.append(remainder);
     }
     panel.append(strip);
-    queueMicrotask(() => view.requestMeasure());
     return panel;
   }
 }
@@ -328,12 +338,16 @@ export function createRecipeNotebook({ parent, initialSource = STARTER_SOURCE }:
         (target): target is Extract<BinScriptProjectionTarget, { kind: 'stage' }> => target.kind === 'stage',
       );
       const previews = targets.map((target) => {
-        const artifacts = result.stages.get(target.stageId) ?? [];
         return {
           at: target.at,
-          stageId: target.stageId,
-          images: artifacts.slice(0, 8).map((artifact: RecipeArtifact) => artifact.image),
-          artifactCount: artifacts.length,
+          rows: target.stageIds.map((stageId) => {
+            const artifacts = result.stages.get(stageId) ?? [];
+            return {
+              stageId,
+              images: artifacts.slice(0, 8).map((artifact: RecipeArtifact) => artifact.image),
+              artifactCount: artifacts.length,
+            };
+          }),
           version,
         };
       });
