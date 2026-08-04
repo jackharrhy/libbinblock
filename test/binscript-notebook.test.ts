@@ -36,7 +36,7 @@ test('notebook projections retain exact source ranges for controls and stages', 
     ['64', '135deg'],
   );
   for (const target of targets) assert.ok(target.from >= 0 && target.to <= STARTER_SOURCE.length && target.from < target.to);
-  for (const target of stages) assert.ok(target.at === STARTER_SOURCE.length || STARTER_SOURCE[target.at - 1] === '\n');
+  for (const target of stages) assert.equal(target.at, target.to);
 });
 
 test('notebook reports the first schema issue as a readable status', () => {

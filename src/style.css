@@ -158,8 +158,8 @@ h2 code {
 .binscript-stage-preview {
   display: inline-block;
   width: fit-content;
-  max-width: calc(100% - 64px);
-  margin: 2px 0 5px 46px;
+  max-width: 100%;
+  margin: 0;
   border: 1px solid #111;
   background-color: #e7e7e7;
   background-image:
@@ -536,7 +536,6 @@ canvas {
     min-height: 440px;
   }
   .binscript-stage-preview {
-    max-width: calc(100% - 16px);
-    margin-left: 8px;
+    max-width: 100%;
   }
 }

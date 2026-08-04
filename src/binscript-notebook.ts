@@ -1,6 +1,6 @@
-import { basicSetup } from 'codemirror';
+import { minimalSetup } from 'codemirror';
 import { StreamLanguage } from '@codemirror/language';
-import { lintGutter, setDiagnostics } from '@codemirror/lint';
+import { setDiagnostics } from '@codemirror/lint';
 import type { Diagnostic } from '@codemirror/lint';
 import { StateEffect, StateField } from '@codemirror/state';
 import { Decoration, EditorView, keymap, ViewPlugin, WidgetType } from '@codemirror/view';
@@ -22,14 +22,12 @@ colors := palette(
 
 blocks := colors.map(fill).size(size)
 blocks
-
 light := lg(
   135deg,
   transparent 0%,
   #ffffff 100%,
 ).size(size)
 light
-
 tiles := blocks.mask(light)
 tiles
 `;
@@ -201,7 +199,11 @@ class StagePreviewWidget extends WidgetType {
     return this.preview.stageId === other.preview.stageId && this.preview.version === other.preview.version;
   }
 
-  toDOM(): HTMLElement {
+  get estimatedHeight(): number {
+    return 78;
+  }
+
+  toDOM(view: EditorView): HTMLElement {
     const panel = document.createElement('section');
     panel.className = 'binscript-stage-preview';
     const strip = document.createElement('div');
@@ -220,6 +222,7 @@ class StagePreviewWidget extends WidgetType {
       strip.append(remainder);
     }
     panel.append(strip);
+    queueMicrotask(() => view.requestMeasure());
     return panel;
   }
 }
@@ -232,7 +235,7 @@ const previewField = StateField.define<DecorationSet>({
       if (effect.is(setStagePreviews)) {
         next = Decoration.set(
           effect.value.map((preview) =>
-            Decoration.widget({ widget: new StagePreviewWidget(preview), block: true, side: 1 }).range(preview.at),
+            Decoration.widget({ widget: new StagePreviewWidget(preview), block: true, side: 0 }).range(preview.at),
           ),
           true,
         );
@@ -340,9 +343,8 @@ export function createRecipeNotebook({
     parent,
     doc: initialSource,
     extensions: [
-      basicSetup,
+      minimalSetup,
       binscriptLanguage,
-      lintGutter(),
       controlPlugin,
       previewField,
       EditorView.lineWrapping,

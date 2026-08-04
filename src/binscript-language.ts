@@ -635,12 +635,11 @@ export function compileBinScript(source: string): CompiledBinScript {
         );
       }
       outputs.push(value.stageId);
-      const lineBreak = source.indexOf('\n', statement.expression.to);
       projections.push({
         kind: 'stage',
         from: statement.expression.from,
         to: statement.expression.to,
-        at: lineBreak === -1 ? source.length : lineBreak + 1,
+        at: statement.expression.to,
         stageId: value.stageId,
       });
       continue;
