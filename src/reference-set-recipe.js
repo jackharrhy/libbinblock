@@ -2,7 +2,7 @@ import { RECIPE_FORMAT } from './recipe-schema.js';
 import { getRedPrintArchiveRecipe, getRedPrintRecipe, getResultAliasMapping, RED_FG_ALPHA_SOURCE_SPECS } from './legacy.js';
 import { PRESETS } from './core.js';
 
-export const DEFAULT_SET_RECIPE_FAMILIES = [
+export const REFERENCE_SET_RECIPE_FAMILIES = [
   { id: 'flat-color', sources: [{ prefix: 'col/', output: 'flat-color/' }] },
   { id: 'gradient-masks', sources: [{ prefix: 'Gradient Layers Alpha Maps/', output: 'gradient-masks/' }] },
   { id: 'gradient-variants', sources: [{ prefix: 'col bin 2/', output: 'gradient-variants/' }] },
@@ -35,13 +35,13 @@ function familyFile(families, path) {
   return undefined;
 }
 
-export function createDefaultSetRasterRecipe(archive, { families = DEFAULT_SET_RECIPE_FAMILIES } = {}) {
+export function createReferenceSetRasterRecipe(archive, { families = REFERENCE_SET_RECIPE_FAMILIES } = {}) {
   const assets = {};
   const filesByFamily = new Map(families.map((family) => [family.id, []]));
   archive.files.forEach((file, index) => {
     const mapped = familyFile(families, file.path);
-    if (!mapped) throw new Error(`No default-set recipe family maps archive path: ${file.path}`);
-    const asset = `default-set-raster-${String(index).padStart(4, '0')}`;
+    if (!mapped) throw new Error(`No reference-set recipe family maps archive path: ${file.path}`);
+    const asset = `reference-set-raster-${String(index).padStart(4, '0')}`;
     assets[asset] = { type: 'raster', path: file.path, ...(file.sha256 ? { sha256: file.sha256 } : {}) };
     filesByFamily.get(mapped.family).push({ asset, key: file.path, path: mapped.path, sourcePath: file.path });
   });
@@ -63,10 +63,10 @@ export function createDefaultSetRasterRecipe(archive, { families = DEFAULT_SET_R
 
   return {
     format: RECIPE_FORMAT,
-    profile: 'default-set-exact/v1',
+    profile: 'reference-set-exact/v1',
     metadata: {
-      name: 'Default set',
-      description: 'A raster-backed recipe for the complete default set, grouped by family.',
+      name: 'Reference set',
+      description: 'A raster-backed recipe for the complete reference set, grouped by family.',
       imageCount: archive.files.length,
     },
     assets,
@@ -115,7 +115,7 @@ export function createDownscaledRecipe(archive, { color = '#0000ff', size = 8 } 
   });
   return {
     format: RECIPE_FORMAT,
-    profile: 'default-set-exact/v1',
+    profile: 'reference-set-exact/v1',
     metadata: { name: 'Downscaled studies', imageCount: files.length },
     values: { color, size },
     assets,
@@ -147,10 +147,10 @@ export function createDownscaledRecipe(archive, { color = '#0000ff', size = 8 } 
 
 export function createGradientMaskRecipe(archive) {
   const map18 = archive.files.find((file) => file.path === 'Gradient Layers Alpha Maps/18.png');
-  if (!map18) throw new Error('The default set is missing Gradient Layers Alpha Maps/18.png.');
+  if (!map18) throw new Error('The reference set is missing Gradient Layers Alpha Maps/18.png.');
   return {
     format: RECIPE_FORMAT,
-    profile: 'default-set-exact/v1',
+    profile: 'reference-set-exact/v1',
     metadata: { name: 'Gradient masks', imageCount: 19 },
     assets: {
       'gradient-map-18': { type: 'raster', path: map18.path, ...(map18.sha256 ? { sha256: map18.sha256 } : {}) },
@@ -171,7 +171,7 @@ export function createGradientMaskRecipe(archive) {
         reproduction: ['case', ['==', ['get', 'index', ['var', 'map']], 18], 'raster-exact', 'analytic-alpha-exact'],
       },
       image: {
-        op: 'default-set/alpha-map',
+        op: 'reference-set/alpha-map',
         index: ['get', 'index', ['var', 'map']],
         rasterAsset: 'gradient-map-18',
       },
@@ -190,7 +190,7 @@ export function createForegroundAlphaRecipe(archive, { color = '#ff0000' } = {})
   });
   return {
     format: RECIPE_FORMAT,
-    profile: 'default-set-exact/v1',
+    profile: 'reference-set-exact/v1',
     metadata: { name: 'Foreground alpha', imageCount: files.length },
     values: { color },
     assets,
@@ -227,8 +227,8 @@ export function createForegroundAlphaRecipe(archive, { color = '#ff0000' } = {})
 }
 
 export function createRasterFamilyRecipe(archive, familyId) {
-  const family = DEFAULT_SET_RECIPE_FAMILIES.find((item) => item.id === familyId);
-  if (!family) throw new Error(`Unknown default-set recipe family: ${familyId}`);
+  const family = REFERENCE_SET_RECIPE_FAMILIES.find((item) => item.id === familyId);
+  if (!family) throw new Error(`Unknown reference-set recipe family: ${familyId}`);
   const assets = {};
   const values = [];
   for (const [index, file] of archive.files.entries()) {
@@ -240,7 +240,7 @@ export function createRasterFamilyRecipe(archive, familyId) {
   }
   return {
     format: RECIPE_FORMAT,
-    profile: 'default-set-exact/v1',
+    profile: 'reference-set-exact/v1',
     metadata: { name: familyId, imageCount: values.length },
     assets,
     stages: [{
@@ -370,7 +370,7 @@ export function createForegroundCompositeRecipe(archive, { color = '#ff0000' } =
   });
   return {
     format: RECIPE_FORMAT,
-    profile: 'default-set-exact/v1',
+    profile: 'reference-set-exact/v1',
     metadata: { name: 'Foreground composites', imageCount: outputFiles.length },
     values: { color },
     assets,
@@ -388,7 +388,7 @@ export function createOrderedResultsRecipe(archive) {
   for (let index = 0; index < 972; index += 1) {
     const mapping = getResultAliasMapping(index);
     const resultFile = filesByPath.get(mapping.resultPath);
-    if (!resultFile) throw new Error(`The default set is missing ${mapping.resultPath}.`);
+    if (!resultFile) throw new Error(`The reference set is missing ${mapping.resultPath}.`);
     const resultFilename = mapping.resultPath.split('/').at(-1);
     if (!mapping.exactPixelAliasExpected) {
       const asset = `ordered-exception-${String(index).padStart(4, '0')}`;
@@ -397,7 +397,7 @@ export function createOrderedResultsRecipe(archive) {
       continue;
     }
     const sourceFile = filesByPath.get(mapping.rgbPath);
-    if (!sourceFile) throw new Error(`The default set is missing alias source ${mapping.rgbPath}.`);
+    if (!sourceFile) throw new Error(`The reference set is missing alias source ${mapping.rgbPath}.`);
     const sourceKey = mapping.rgbPath;
     if (!sources.some((source) => source.key === sourceKey)) {
       const asset = `ordered-source-${String(sources.length).padStart(4, '0')}`;
@@ -408,7 +408,7 @@ export function createOrderedResultsRecipe(archive) {
   }
   return {
     format: RECIPE_FORMAT,
-    profile: 'default-set-exact/v1',
+    profile: 'reference-set-exact/v1',
     metadata: { name: 'Ordered results', imageCount: 972, pixelAliases: aliases.length, rasterExceptions: exceptions.length },
     assets,
     stages: [

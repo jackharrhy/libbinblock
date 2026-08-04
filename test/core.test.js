@@ -23,8 +23,8 @@ test('alpha masks retain transparent RGB data for archive export', () => {
   assert.deepEqual([...pixels], [0, 0, 0, 255, 0, 0, 0, 0]);
 });
 
-test('default-set solid blue fixture is pixel-identical to the shared renderer', async () => {
-  const fixture = 'default-set/blue 64-8 24 bit/col_blue_hi.png';
+test('reference-set solid blue fixture is pixel-identical to the shared renderer', async () => {
+  const fixture = 'reference-set/blue 64-8 24 bit/col_blue_hi.png';
   await readFile(fixture);
   const image = await loadImage(fixture);
   const canvas = createCanvas(image.width, image.height);

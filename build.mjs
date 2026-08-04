@@ -3,7 +3,7 @@ import { createCanvas, loadImage } from 'canvas';
 import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
-import { createDefaultSetRasterRecipe } from './src/default-set-recipe.js';
+import { createReferenceSetRasterRecipe } from './src/reference-set-recipe.js';
 import { parseRecipeDocument } from './src/recipe-schema.js';
 
 async function walkPngs(directory) {
@@ -16,7 +16,7 @@ async function walkPngs(directory) {
 }
 
 async function archivePayload() {
-  const root = join(process.cwd(), 'default-set');
+  const root = join(process.cwd(), 'reference-set');
   const paths = (await walkPngs(root)).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
   const files = await Promise.all(paths.map(async (path) => {
     const bytes = await readFile(path);
@@ -58,8 +58,8 @@ async function archivePayload() {
 }
 
 const archive = await archivePayload();
-const defaultSetRecipe = parseRecipeDocument(createDefaultSetRasterRecipe(archive));
-if (defaultSetRecipe.metadata.imageCount !== archive.files.length) throw new Error('The default-set recipe does not cover the complete archive.');
+const referenceSetRecipe = parseRecipeDocument(createReferenceSetRasterRecipe(archive));
+if (referenceSetRecipe.metadata.imageCount !== archive.files.length) throw new Error('The reference-set recipe does not cover the complete archive.');
 
 const result = await esbuild.build({
   entryPoints: ['src/app.js'],
@@ -70,11 +70,11 @@ const result = await esbuild.build({
   write: false,
   logLevel: 'info',
   plugins: [{
-    name: 'embedded-default-set-archive',
+    name: 'embedded-reference-set-archive',
     setup(build) {
-      build.onResolve({ filter: /^virtual:default-set-archive$/ }, () => ({ path: 'archive', namespace: 'default-set' }));
-      build.onLoad({ filter: /.*/, namespace: 'default-set' }, () => ({
-        contents: `export const DEFAULT_SET_ARCHIVE = ${JSON.stringify(archive)};`,
+      build.onResolve({ filter: /^virtual:reference-set-archive$/ }, () => ({ path: 'archive', namespace: 'reference-set' }));
+      build.onLoad({ filter: /.*/, namespace: 'reference-set' }, () => ({
+        contents: `export const REFERENCE_SET_ARCHIVE = ${JSON.stringify(archive)};`,
         loader: 'js',
       }));
     },

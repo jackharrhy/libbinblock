@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
-const archiveRoot = join(process.cwd(), 'default-set');
+const archiveRoot = join(process.cwd(), 'reference-set');
 const reportPath = join(process.cwd(), 'DUPLICATES.md');
 
 async function walk(directory) {

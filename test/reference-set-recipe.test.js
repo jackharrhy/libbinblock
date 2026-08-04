@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createCanvas, loadImage } from 'canvas';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DEFAULT_SET_IMAGE_OPERATIONS } from '../src/default-set-operations.js';
+import { REFERENCE_SET_IMAGE_OPERATIONS } from '../src/reference-set-operations.js';
 import {
   createDownscaledRecipe,
   createCustomPermutationRecipe,
@@ -11,9 +11,9 @@ import {
   createForegroundAlphaRecipe,
   createForegroundCompositeRecipe,
   createGradientMaskRecipe,
-  createDefaultSetRasterRecipe,
+  createReferenceSetRasterRecipe,
   createOrderedResultsRecipe,
-} from '../src/default-set-recipe.js';
+} from '../src/reference-set-recipe.js';
 import { compileRecipe } from '../src/recipe-executor.js';
 import { renderRedPrintArchiveOutput } from '../src/legacy.js';
 import { parseRecipeDocument } from '../src/recipe-schema.js';
@@ -26,7 +26,7 @@ async function imagePixels(path) {
   return { width: image.width, height: image.height, pixels: canvas.getContext('2d').getImageData(0, 0, image.width, image.height).data };
 }
 
-test('complete default set maps source folders into composable semantic stages', async () => {
+test('complete reference set maps source folders into composable semantic stages', async () => {
   const archive = {
     files: [
       { path: 'col/col_blue_hi.png' },
@@ -34,7 +34,7 @@ test('complete default set maps source folders into composable semantic stages',
       { path: 'result/ColBinSet_0000.png' },
     ],
   };
-  const recipe = createDefaultSetRasterRecipe(archive);
+  const recipe = createReferenceSetRasterRecipe(archive);
   const pixels = new Uint8ClampedArray([0, 0, 255, 255]);
   const result = await compileRecipe(recipe, {
     resolveRaster: async () => ({ width: 1, height: 1, pixels }),
@@ -51,8 +51,8 @@ test('complete default set maps source folders into composable semantic stages',
   ]);
 });
 
-test('complete default set rejects archive paths without a family mapping', () => {
-  assert.throws(() => createDefaultSetRasterRecipe({ files: [{ path: 'unknown/file.png' }] }), /No default-set recipe family maps/);
+test('complete reference set rejects archive paths without a family mapping', () => {
+  assert.throws(() => createReferenceSetRasterRecipe({ files: [{ path: 'unknown/file.png' }] }), /No reference-set recipe family maps/);
 });
 
 test('flat-color recipe expands arbitrary palette values into analytic artifacts', async () => {
@@ -66,26 +66,26 @@ test('flat-color recipe expands arbitrary palette values into analytic artifacts
 });
 
 test('downscaled recipe reproduces all 88 default fixtures pixel-exactly', async () => {
-  const directory = 'default-set/blue 64-8 24 bit';
+  const directory = 'reference-set/blue 64-8 24 bit';
   const filenames = (await readdir(directory)).filter((filename) => filename.endsWith('.png')).sort();
   const archive = { files: filenames.map((filename) => ({ path: `blue 64-8 24 bit/${filename}` })) };
   const result = await compileRecipe(createDownscaledRecipe(archive), {
-    resolveRaster: (_assetId, asset) => imagePixels(join('default-set', asset.path)),
+    resolveRaster: (_assetId, asset) => imagePixels(join('reference-set', asset.path)),
   });
   assert.equal(result.outputs.length, 88);
   for (const output of result.outputs) {
-    const expected = await imagePixels(join('default-set/blue 64-8 24 bit', output.key));
+    const expected = await imagePixels(join('reference-set/blue 64-8 24 bit', output.key));
     assert.deepEqual([...output.image.pixels], [...expected.pixels], output.key);
   }
 });
 
 test('gradient-mask recipe reproduces all 19 mask dimensions and alpha channels exactly', async () => {
-  const directory = 'default-set/Gradient Layers Alpha Maps';
+  const directory = 'reference-set/Gradient Layers Alpha Maps';
   const filenames = (await readdir(directory)).filter((filename) => filename.endsWith('.png')).sort();
   const archive = { files: filenames.map((filename) => ({ path: `Gradient Layers Alpha Maps/${filename}` })) };
   const result = await compileRecipe(createGradientMaskRecipe(archive), {
-    operations: DEFAULT_SET_IMAGE_OPERATIONS,
-    resolveRaster: (_assetId, asset) => imagePixels(join('default-set', asset.path)),
+    operations: REFERENCE_SET_IMAGE_OPERATIONS,
+    resolveRaster: (_assetId, asset) => imagePixels(join('reference-set', asset.path)),
   });
   assert.equal(result.outputs.length, 19);
   for (const output of result.outputs) {
@@ -102,11 +102,11 @@ test('gradient-mask recipe reproduces all 19 mask dimensions and alpha channels 
 });
 
 test('foreground-alpha recipe feeds a pinned field stage into a configurable tint stage', async () => {
-  const directory = 'default-set/red FG-Alpha';
+  const directory = 'reference-set/red FG-Alpha';
   const filenames = (await readdir(directory)).filter((filename) => filename.endsWith('.png')).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
   const archive = { files: filenames.map((filename) => ({ path: `red FG-Alpha/${filename}` })) };
   const result = await compileRecipe(createForegroundAlphaRecipe(archive), {
-    resolveRaster: (_assetId, asset) => imagePixels(join('default-set', asset.path)),
+    resolveRaster: (_assetId, asset) => imagePixels(join('reference-set', asset.path)),
   });
   assert.equal(result.stages.get('foreground-alpha-fields').length, 22);
   assert.equal(result.outputs.length, 22);
@@ -117,8 +117,8 @@ test('foreground-alpha recipe feeds a pinned field stage into a configurable tin
 });
 
 test('foreground-composite recipe selects one upstream field per output', async () => {
-  const fieldDirectory = 'default-set/red FG-Alpha';
-  const outputDirectory = 'default-set/Red-col fg-alpha Print/print output';
+  const fieldDirectory = 'reference-set/red FG-Alpha';
+  const outputDirectory = 'reference-set/Red-col fg-alpha Print/print output';
   const fieldNames = (await readdir(fieldDirectory)).filter((filename) => filename.endsWith('.png')).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
   const outputNames = (await readdir(outputDirectory)).filter((filename) => filename.endsWith('.png')).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
   const archive = { files: [
@@ -128,7 +128,7 @@ test('foreground-composite recipe selects one upstream field per output', async 
   const sources = {};
   for (const filename of fieldNames) sources[Number.parseInt(filename, 10)] = await imagePixels(join(fieldDirectory, filename));
   const result = await compileRecipe(createForegroundCompositeRecipe(archive, { color: '#00ff00' }), {
-    resolveRaster: (_assetId, asset) => imagePixels(join('default-set', asset.path)),
+    resolveRaster: (_assetId, asset) => imagePixels(join('reference-set', asset.path)),
   });
   assert.equal(result.stages.get('foreground-composite-fields').length, 22);
   assert.equal(result.outputs.length, 815);
@@ -139,8 +139,8 @@ test('foreground-composite recipe selects one upstream field per output', async 
 });
 
 test('ordered-result recipe records 960 pixel aliases and 12 raster exceptions', async () => {
-  const rgbNames = (await readdir('default-set/col bin 2/rgb')).filter((filename) => filename.endsWith('.png'));
-  const resultNames = (await readdir('default-set/result')).filter((filename) => filename.endsWith('.png'));
+  const rgbNames = (await readdir('reference-set/col bin 2/rgb')).filter((filename) => filename.endsWith('.png'));
+  const resultNames = (await readdir('reference-set/result')).filter((filename) => filename.endsWith('.png'));
   const archive = { files: [
     ...rgbNames.map((filename) => ({ path: `col bin 2/rgb/${filename}` })),
     ...resultNames.map((filename) => ({ path: `result/${filename}` })),

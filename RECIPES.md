@@ -57,7 +57,7 @@ The initial generic operation set is:
 - Color and alpha: `opacity` and `set-visible-rgb`.
 - Geometry: `crop`, quarter-turn `rotate`, and numeric-sRGB `lanczos3` resize.
 
-Raster and glyph operations use injected adapters. The compiler does not depend on the DOM, Canvas, Node filesystem APIs, or the embedded default set.
+Raster and glyph operations use injected adapters. The compiler does not depend on the DOM, Canvas, Node filesystem APIs, or the embedded reference set.
 
 Reusable definitions accept scalar parameters:
 
@@ -77,9 +77,9 @@ Reusable definitions accept scalar parameters:
 }
 ```
 
-## Default set
+## Reference set
 
-`createDefaultSetRasterRecipe()` maps all 4,312 embedded files into a `default-set-exact/v1` recipe. Each family has its own stage, and every source file is pinned as a raster asset.
+`createReferenceSetRasterRecipe()` maps all 4,312 embedded files into a `reference-set-exact/v1` recipe. Each family has its own stage, and every source file is pinned as a raster asset.
 
 | Stage | Initial source | Analytic replacement |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ Reusable definitions accept scalar parameters:
 | `serif-glyphs` | Glyph-mask raster baseline | Font asset x glyph values, then glyph renderer |
 | `ordered-results` | Raster baseline | Alias stages targeting canonical variant artifacts |
 
-The default profile provides a raster-backed stage for every family. Family IDs and output paths are the stable interface for downstream stages. Set-specific operations use the `default-set/` namespace.
+The reference profile provides a raster-backed stage for every family. Family IDs and output paths are the stable interface for downstream stages. Set-specific operations use the `reference-set/` namespace.
 
 ### Current family implementations
 
@@ -124,8 +124,8 @@ The format and render profile are versioned separately:
 ```json
 {
   "format": "bin-block-recipe/v1",
-  "profile": "default-set-exact/v1"
+  "profile": "reference-set-exact/v1"
 }
 ```
 
-Generic recipes use `numeric-srgb/v1`. The default set uses pinned rasters for outputs that do not yet have exact analytic recipes. Alias artifacts record byte, pixel, or recipe identity. Compiled artifacts include their stage, key, properties, image, and provenance.
+Generic recipes use `numeric-srgb/v1`. The reference set uses pinned rasters for outputs that do not yet have exact analytic recipes. Alias artifacts record byte, pixel, or recipe identity. Compiled artifacts include their stage, key, properties, image, and provenance.

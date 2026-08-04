@@ -125,7 +125,7 @@ export const ImageNodeSchema = z.lazy(() => z.union([
   }),
   z.strictObject({ op: z.literal('raster'), asset: StringValueSchema }),
   z.strictObject({
-    op: z.literal('default-set/alpha-map'),
+    op: z.literal('reference-set/alpha-map'),
     index: IntegerValueSchema,
     rasterAsset: StringValueSchema.optional(),
   }),

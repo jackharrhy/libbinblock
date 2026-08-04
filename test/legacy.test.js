@@ -55,7 +55,7 @@ function difference(actual, expected) {
 
 test('legacy maps 00-17 reproduce native dimensions, offsets, and every alpha byte', async () => {
   for (let index = 0; index < 18; index += 1) {
-    const fixture = await loadRgba(`default-set/Gradient Layers Alpha Maps/${String(index).padStart(2, '0')}.png`);
+    const fixture = await loadRgba(`reference-set/Gradient Layers Alpha Maps/${String(index).padStart(2, '0')}.png`);
     const generated = renderLegacyAlphaMap(index);
     const spec = LEGACY_ALPHA_MAP_SPECS[index];
     assert.deepEqual([generated.width, generated.height, generated.offsetX, generated.offsetY], [
@@ -69,16 +69,17 @@ test('legacy maps 00-17 reproduce native dimensions, offsets, and every alpha by
 
 test('map 18 is an explicit raster dependency', async () => {
   assert.throws(() => renderLegacyAlphaMap(18), /requires 64x64 RGBA raster data/);
-  const fixture = await loadRgba('default-set/Gradient Layers Alpha Maps/18.png');
+  const fixture = await loadRgba('reference-set/Gradient Layers Alpha Maps/18.png');
   const generated = renderLegacyAlphaMap(18, fixture.pixels);
   assert.deepEqual([...generated.pixels], [...fixture.pixels]);
 });
 
 test('out4 first group, including raster map 18 and flat base, is pixel-exact', async () => {
-  const map18 = await loadRgba('default-set/Gradient Layers Alpha Maps/18.png');
+  const map18 = await loadRgba('reference-set/Gradient Layers Alpha Maps/18.png');
   for (let layer = 0; layer < 20; layer += 1) {
     const directory = [6, 7, 8, 15, 16, 17, 18].includes(layer) ? 'out4-special' : 'out4 - Select Library';
-    const fixture = await loadRgba(`default-set/${directory}/layer_${layer}.png`);
+    const filename = layer === 0 ? 'Layer_0.png' : `layer_${layer}.png`;
+    const fixture = await loadRgba(`reference-set/${directory}/${filename}`);
     const generated = renderOut4Layer({ layerNumber: layer, rasterMap18: map18.pixels });
     assert.deepEqual([...generated], [...fixture.pixels], `out4 layer ${layer}`);
   }
@@ -97,8 +98,8 @@ test('red foreground-alpha print indexing and a source-over fixture are exact', 
   assert.deepEqual(getRedPrintRecipe(21), { layerNumber: 21, group: 0, base: '#dc8800', sourceNumber: 1 });
   assert.deepEqual(getRedPrintRecipe(22), { layerNumber: 22, group: 1, base: '#fcec00', sourceNumber: 22 });
 
-  const source = await loadRgba('default-set/red FG-Alpha/16.png');
-  const fixture = await loadRgba('default-set/Red-col fg-alpha Print/print output/layer_6.png');
+  const source = await loadRgba('reference-set/red FG-Alpha/16.png');
+  const fixture = await loadRgba('reference-set/Red-col fg-alpha Print/print output/layer_6.png');
   const normalizedSource = new Uint8ClampedArray(source.pixels);
   for (let offset = 0; offset < normalizedSource.length; offset += 4) {
     if (normalizedSource[offset + 3] === 0) continue;
@@ -129,10 +130,10 @@ test('red print source metadata and archive filename discontinuity are recovered
 });
 
 test('all 815 red print archive outputs are generated within measured source quantization', async (context) => {
-  const directory = 'default-set/Red-col fg-alpha Print/print output';
+  const directory = 'reference-set/Red-col fg-alpha Print/print output';
   const sources = {};
   for (let sourceNumber = 1; sourceNumber <= 22; sourceNumber += 1) {
-    sources[sourceNumber] = await loadRgba(`default-set/red FG-Alpha/${sourceNumber}.png`);
+    sources[sourceNumber] = await loadRgba(`reference-set/red FG-Alpha/${sourceNumber}.png`);
   }
   const files = await readdir(directory);
   let exact = 0;
@@ -174,7 +175,7 @@ test('result numbering recovers all group boundaries and the missing grad06 fixt
 });
 
 test('all 972 result aliases map to RGB pixels with 12 encoded grad06 exceptions', async (context) => {
-  const availableRgb = new Set(await readdir('default-set/col bin 2/rgb'));
+  const availableRgb = new Set(await readdir('reference-set/col bin 2/rgb'));
   const exceptions = [];
   let exactAliases = 0;
   for (let index = 0; index < 972; index += 1) {
@@ -184,8 +185,8 @@ test('all 972 result aliases map to RGB pixels with 12 encoded grad06 exceptions
       assert.equal(availableRgb.has(mapping.rgbPath.split('/').at(-1)), false);
       continue;
     }
-    const result = await loadRgba(`default-set/${mapping.resultPath}`);
-    const rgb = await loadRgba(`default-set/${mapping.rgbPath}`);
+    const result = await loadRgba(`reference-set/${mapping.resultPath}`);
+    const rgb = await loadRgba(`reference-set/${mapping.rgbPath}`);
     assert.deepEqual([...result.pixels], [...rgb.pixels], `result alias ${index}`);
     exactAliases += 1;
   }
@@ -215,14 +216,14 @@ test('historic variant names expose gradient, overlay, opacity, and rotation', (
 });
 
 test('all 88 historic blue outputs are exact from unrotated 64px sources', async (context) => {
-  const smallDirectory = 'default-set/blue 64-8 24 bit';
-  const largeDirectory = 'default-set/col bin 2/rgb';
+  const smallDirectory = 'reference-set/blue 64-8 24 bit';
+  const largeDirectory = 'reference-set/col bin 2/rgb';
   const files = (await readdir(smallDirectory)).filter((file) => file.endsWith('.png'));
   let exact = 0;
   for (const file of files) {
     const unrotatedName = file.replace(/-rot(?:CCW|CW)/, '');
     const sourcePath = unrotatedName.includes('grad06blk50')
-      ? 'default-set/result/ColBinSet_0020.png'
+      ? 'reference-set/result/ColBinSet_0020.png'
       : `${largeDirectory}/${unrotatedName}`;
     const source = await loadRgba(sourcePath);
     const fixture = await loadRgba(`${smallDirectory}/${file}`);
@@ -245,9 +246,9 @@ test('90-degree rotation is exact for rectangular data and archive CW/CCW files'
   assert.deepEqual([clockwise.width, clockwise.height], [2, 3]);
   assert.deepEqual([...clockwise.pixels.filter((_, index) => index % 4 === 0)], [4, 1, 5, 2, 6, 3]);
 
-  const original = await loadRgba('default-set/blue 64-8 24 bit/col_blue_hi-grad10blk.png');
-  const cwFixture = await loadRgba('default-set/blue 64-8 24 bit/col_blue_hi-grad10blk-rotCW.png');
-  const ccwFixture = await loadRgba('default-set/blue 64-8 24 bit/col_blue_hi-grad10blk-rotCCW.png');
+  const original = await loadRgba('reference-set/blue 64-8 24 bit/col_blue_hi-grad10blk.png');
+  const cwFixture = await loadRgba('reference-set/blue 64-8 24 bit/col_blue_hi-grad10blk-rotCW.png');
+  const ccwFixture = await loadRgba('reference-set/blue 64-8 24 bit/col_blue_hi-grad10blk-rotCCW.png');
   assert.deepEqual([...rotateRGBA90(original.pixels, 8, 8, 1).pixels], [...cwFixture.pixels]);
   assert.deepEqual([...rotateRGBA90(original.pixels, 8, 8, -1).pixels], [...ccwFixture.pixels]);
 });
@@ -274,8 +275,8 @@ test('elliptical multi-stop gradients support unequal radii, rotation, alpha, an
 });
 
 test('Lanczos3 downsampling closely tracks all available 64-to-8 blue fixtures', async (context) => {
-  const smallDirectory = 'default-set/blue 64-8 24 bit';
-  const largeDirectory = 'default-set/col bin 2/rgb';
+  const smallDirectory = 'reference-set/blue 64-8 24 bit';
+  const largeDirectory = 'reference-set/col bin 2/rgb';
   const files = await readdir(smallDirectory);
   const available = new Set(await readdir(largeDirectory));
   const fixtureFiles = files.filter((file) => file.endsWith('.png') && available.has(file));
@@ -314,7 +315,7 @@ test('out4 recipes reject the unrecovered partial group after layer 839', () => 
 
 test('modding 1918 is the only claimed pixel-exact recovered 1900 output', async () => {
   assert.equal(MODDING_1900_FLAT_COLOUR, '#ffb5a3');
-  const fixture = await loadRgba('default-set/out4 - modding/1918.png');
+  const fixture = await loadRgba('reference-set/out4 - modding/1918.png');
   assert.deepEqual([...renderModding1900(1918)], [...fixture.pixels]);
   assert.throws(() => renderModding1900(1917), /not analytically recovered/);
 });

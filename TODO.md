@@ -2,7 +2,7 @@
 
 ## Current state
 
-- The embedded default set contains 4,312 PNGs and is represented by `createDefaultSetRasterRecipe()`.
+- The embedded reference set contains 4,312 PNGs and is represented by `createReferenceSetRasterRecipe()`.
 - `bin-block-recipe/v1` is validated with Zod and exports as JSON Schema.
 - Mapbox-style expressions provide deterministic scalar parameters and naming.
 - Stages emit ordered artifact sets; downstream stages can consume those sets through `forEach` bindings.
@@ -18,7 +18,7 @@
 | Semantic family | Images | Recipe | Frontend | Exactness | Remaining work |
 | --- | ---: | --- | --- | --- | --- |
 | `flat-color` | 16+ | Analytic | Pipeline | Pixel-exact | Add RGBA values and configurable dimensions |
-| `gradient-masks` | 19 | Analytic + one raster | Pipeline | Alpha-exact `00-17`; raster-exact `18` | Replace `default-set/alpha-map` with generic geometry parameters and preserve historical white RGB quantization where required |
+| `gradient-masks` | 19 | Analytic + one raster | Pipeline | Alpha-exact `00-17`; raster-exact `18` | Replace `reference-set/alpha-map` with generic geometry parameters and preserve historical white RGB quantization where required |
 | `gradient-variants` | 1,202 | Executable raster recipe | Recipe-backed atlas/byte passthrough | Raster-exact | Model palette × field × overlay × opacity × rotation; recover high-precision `gradNN` fields |
 | `downscaled` | 88 | Composable | Pipeline | Pixel-exact at default | Feed canonical gradient-variant artifacts instead of pinned 8×8 sources after high-precision fields are recovered |
 | `foreground-alpha` | 22 | Two-stage composable | Pipeline | Raster-exact default; configurable tint | Replace pinned alpha fields with analytic or imported mask stages where possible |

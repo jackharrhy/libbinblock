@@ -122,7 +122,7 @@ export const RESULT_GRAD06BLK50_EXCEPTIONS = Object.freeze(
   })),
 );
 
-// Sparse deltas from float Lanczos3 output to the default set's 8-bit fixtures. Indices are
+// Sparse deltas from float Lanczos3 output to the reference set's 8-bit fixtures. Indices are
 // base-36 RGBA byte offsets; deltas are signed decimal bytes.
 export const BLUE_8_LANCZOS_CORRECTIONS = Object.freeze({
   'col_blue_hi-grad00blk100': '6-1,a+1,m+1,q-1,26+1,2a+1,2q-1,3i-1,3m-1,4e-1,4u+1,4y+1,6e-1,6i+1,6u+1,6y-1',

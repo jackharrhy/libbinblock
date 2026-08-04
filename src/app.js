@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import './style.css';
 import { DEFAULT_PALETTE, PRESETS } from './core.js';
-import { DEFAULT_SET_IMAGE_OPERATIONS } from './default-set-operations.js';
+import { REFERENCE_SET_IMAGE_OPERATIONS } from './reference-set-operations.js';
 import {
   createDownscaledRecipe,
   createCustomPermutationRecipe,
@@ -13,16 +13,16 @@ import {
   createOrderedResultsRecipe,
   createRasterFamilyRecipe,
   createTwoColorFamilyRecipe,
-} from './default-set-recipe.js';
+} from './reference-set-recipe.js';
 import { compileRecipe } from './recipe-executor.js';
 import { parseRecipeDocument, recipeJsonSchema } from './recipe-schema.js';
-import { DEFAULT_SET_ARCHIVE } from 'virtual:default-set-archive';
+import { REFERENCE_SET_ARCHIVE } from 'virtual:reference-set-archive';
 
 const overlays = [
   { name: 'blk100', colour: '#000000' },
   { name: 'wht100', colour: '#ffffff' },
 ];
-const archiveGroupCounts = new Map(DEFAULT_SET_ARCHIVE.groups.map((group) => [group.name, group.count]));
+const archiveGroupCounts = new Map(REFERENCE_SET_ARCHIVE.groups.map((group) => [group.name, group.count]));
 const STAGES = [
   { id: 'flat-color', output: 'flat-color', label: 'Flat colors', description: 'Emit one solid block per selected palette color.', sources: ['col'] },
   { id: 'gradient-masks', output: 'gradient-masks', label: 'Gradient masks', description: 'Axial, radial, square, border, and imported raster alpha fields.', sources: ['Gradient Layers Alpha Maps'] },
@@ -86,7 +86,7 @@ const collectionCount = document.querySelector('#collection-count');
 const collectionStatus = document.querySelector('#collection-status');
 const atlasPreview = document.querySelector('#atlas-preview');
 const folderTree = document.querySelector('#folder-tree');
-const archiveFilesByPath = new Map(DEFAULT_SET_ARCHIVE.files.map((file) => [file.path, file]));
+const archiveFilesByPath = new Map(REFERENCE_SET_ARCHIVE.files.map((file) => [file.path, file]));
 const archivePixelCache = new Map();
 let archiveAtlasBitmap;
 
@@ -140,7 +140,7 @@ async function decodeArchivePixels(path) {
 
 function compileFamilyRecipe(recipe) {
   return compileRecipe(recipe, {
-    operations: DEFAULT_SET_IMAGE_OPERATIONS,
+    operations: REFERENCE_SET_IMAGE_OPERATIONS,
     resolveRaster: (_assetId, asset) => archivePixels(asset.path),
   });
 }
@@ -150,37 +150,37 @@ async function flatColorOutputs() {
 }
 
 async function downscaledOutputs() {
-  return (await compileFamilyRecipe(createDownscaledRecipe(DEFAULT_SET_ARCHIVE, {
+  return (await compileFamilyRecipe(createDownscaledRecipe(REFERENCE_SET_ARCHIVE, {
     color: stageColor('downscale'),
     size: Number(document.querySelector('[data-stage-size="downscale"]').value),
   }))).outputs;
 }
 
 async function gradientMaskOutputs() {
-  return (await compileFamilyRecipe(createGradientMaskRecipe(DEFAULT_SET_ARCHIVE))).outputs;
+  return (await compileFamilyRecipe(createGradientMaskRecipe(REFERENCE_SET_ARCHIVE))).outputs;
 }
 
 async function foregroundAlphaOutputs() {
-  return (await compileFamilyRecipe(createForegroundAlphaRecipe(DEFAULT_SET_ARCHIVE, {
+  return (await compileFamilyRecipe(createForegroundAlphaRecipe(REFERENCE_SET_ARCHIVE, {
     color: stageColor('foreground-alpha'),
   }))).outputs;
 }
 
 async function foregroundCompositeOutputs() {
-  return (await compileFamilyRecipe(createForegroundCompositeRecipe(DEFAULT_SET_ARCHIVE, {
+  return (await compileFamilyRecipe(createForegroundCompositeRecipe(REFERENCE_SET_ARCHIVE, {
     color: stageColor('foreground-composites'),
   }))).outputs;
 }
 
 async function organicGradientOutputs() {
-  return (await compileFamilyRecipe(createOrganicGradientRecipe(DEFAULT_SET_ARCHIVE, {
+  return (await compileFamilyRecipe(createOrganicGradientRecipe(REFERENCE_SET_ARCHIVE, {
     color: stageColor('elliptical-gradients'),
   }))).outputs;
 }
 
 async function glyphOutputs(familyId) {
   const sans = familyId === 'sans-glyphs';
-  return (await compileFamilyRecipe(createTwoColorFamilyRecipe(DEFAULT_SET_ARCHIVE, {
+  return (await compileFamilyRecipe(createTwoColorFamilyRecipe(REFERENCE_SET_ARCHIVE, {
     familyId,
     sourceForeground: sans ? '#000000' : '#ff0000',
     sourceBackground: sans ? '#ffffff' : '#0000ff',
@@ -214,7 +214,7 @@ function collectionPlan() {
 function selectedArchiveGroups() {
   const selectedStages = new Set([...document.querySelectorAll('[name="generation-stage"]:checked')].map((input) => input.value));
   const selectedSources = new Set(STAGES.filter((stage) => selectedStages.has(stage.id)).flatMap((stage) => stage.sources));
-  return DEFAULT_SET_ARCHIVE.groups.filter((group) => selectedSources.has(group.name));
+  return REFERENCE_SET_ARCHIVE.groups.filter((group) => selectedSources.has(group.name));
 }
 
 function selectedStages() {
@@ -295,7 +295,7 @@ async function updateCollectionCount() {
 }
 
 async function getArchiveAtlasBitmap() {
-  archiveAtlasBitmap ||= await createImageBitmap(base64Blob(DEFAULT_SET_ARCHIVE.atlas.base64));
+  archiveAtlasBitmap ||= await createImageBitmap(base64Blob(REFERENCE_SET_ARCHIVE.atlas.base64));
   return archiveAtlasBitmap;
 }
 
@@ -308,7 +308,7 @@ async function renderCollectionPreview(groups, colours, presets, results) {
     return;
   }
   const width = 64;
-  const columns = DEFAULT_SET_ARCHIVE.atlas.columns;
+  const columns = REFERENCE_SET_ARCHIVE.atlas.columns;
   const archiveRows = groups.reduce((total, group) => total + group.atlasRows + 1, 0);
   const customRows = results ? 5 + Math.ceil(results / columns) * 2 + 1 : 0;
   atlasPreview.width = columns * width;
@@ -336,7 +336,7 @@ async function renderCollectionPreview(groups, colours, presets, results) {
                         ? await glyphOutputs('serif-glyphs')
           : undefined;
       if (pipelineOutputs) {
-        const files = pipelineOutputs ?? DEFAULT_SET_ARCHIVE.files.filter((file) => file.path.split('/')[0] === group.name);
+        const files = pipelineOutputs ?? REFERENCE_SET_ARCHIVE.files.filter((file) => file.path.split('/')[0] === group.name);
         for (const [index, file] of files.entries()) {
           atlasContext.putImageData(new ImageData(file.image.pixels, file.image.width, file.image.height), (index % columns) * width, (destinationRow + Math.floor(index / columns)) * width);
         }
@@ -409,7 +409,7 @@ async function buildCollection() {
   const paletteEntries = collectionPlan().colours;
   const customFlatCount = stageEnabled('flat-color') ? paletteEntries.filter(([name]) => name.startsWith('custom_')).length : 0;
   const selectedPaletteNames = new Set(paletteEntries.map(([name]) => `${name}.png`));
-  const selectedFiles = DEFAULT_SET_ARCHIVE.files.filter((file) => {
+  const selectedFiles = REFERENCE_SET_ARCHIVE.files.filter((file) => {
     const group = file.path.split('/')[0];
     if (!selectedNames.has(group)) return false;
     return group !== 'col' || selectedPaletteNames.has(file.path.split('/').at(-1));
@@ -443,7 +443,7 @@ async function buildCollection() {
   }
   if (stageEnabled('gradient-masks')) {
     collectionStatus.textContent = 'compiling gradient-mask recipe...';
-    const recipe = createGradientMaskRecipe(DEFAULT_SET_ARCHIVE);
+    const recipe = createGradientMaskRecipe(REFERENCE_SET_ARCHIVE);
     for (const output of (await compileFamilyRecipe(recipe)).outputs) {
       zip.file(`${root}/${output.path}`, await canvasBlob(canvasFromPixels(output.image.pixels, output.image.width, output.image.height)));
       materializedPaths.push(output.path);
@@ -452,7 +452,7 @@ async function buildCollection() {
   }
   if (stageEnabled('downscale')) {
     collectionStatus.textContent = 'compiling downscaled recipe...';
-    const recipe = createDownscaledRecipe(DEFAULT_SET_ARCHIVE, {
+    const recipe = createDownscaledRecipe(REFERENCE_SET_ARCHIVE, {
       color: stageColor('downscale'),
       size: Number(document.querySelector('[data-stage-size="downscale"]').value),
     });
@@ -464,7 +464,7 @@ async function buildCollection() {
   }
   if (stageEnabled('foreground-alpha')) {
     collectionStatus.textContent = 'compiling foreground-alpha recipe...';
-    const recipe = createForegroundAlphaRecipe(DEFAULT_SET_ARCHIVE, { color: stageColor('foreground-alpha') });
+    const recipe = createForegroundAlphaRecipe(REFERENCE_SET_ARCHIVE, { color: stageColor('foreground-alpha') });
     for (const output of (await compileFamilyRecipe(recipe)).outputs) {
       zip.file(`${root}/${output.path}`, await canvasBlob(canvasFromPixels(output.image.pixels, output.image.width, output.image.height)));
       materializedPaths.push(output.path);
@@ -473,7 +473,7 @@ async function buildCollection() {
   }
   if (stageEnabled('foreground-composites')) {
     collectionStatus.textContent = 'compiling foreground-composite recipe...';
-    const recipe = createForegroundCompositeRecipe(DEFAULT_SET_ARCHIVE, { color: stageColor('foreground-composites') });
+    const recipe = createForegroundCompositeRecipe(REFERENCE_SET_ARCHIVE, { color: stageColor('foreground-composites') });
     for (const output of (await compileFamilyRecipe(recipe)).outputs) {
       zip.file(`${root}/${output.path}`, await canvasBlob(canvasFromPixels(output.image.pixels, output.image.width, output.image.height)));
       materializedPaths.push(output.path);
@@ -482,21 +482,21 @@ async function buildCollection() {
   }
   if (stageEnabled('historic-gradients')) {
     collectionStatus.textContent = 'compiling gradient-variant recipe...';
-    await emitRecipe('gradient-variants', 'recipes/gradient-variants.json', createRasterFamilyRecipe(DEFAULT_SET_ARCHIVE, 'gradient-variants'), { materialize: false });
+    await emitRecipe('gradient-variants', 'recipes/gradient-variants.json', createRasterFamilyRecipe(REFERENCE_SET_ARCHIVE, 'gradient-variants'), { materialize: false });
   }
   if (stageEnabled('elliptical-gradients')) {
     collectionStatus.textContent = 'compiling elliptical-gradient recipe...';
-    await emitRecipe('elliptical-gradients', 'recipes/elliptical-gradients.json', createOrganicGradientRecipe(DEFAULT_SET_ARCHIVE, {
+    await emitRecipe('elliptical-gradients', 'recipes/elliptical-gradients.json', createOrganicGradientRecipe(REFERENCE_SET_ARCHIVE, {
       color: stageColor('elliptical-gradients'),
     }));
   }
   if (stageEnabled('layer-compositions')) {
     collectionStatus.textContent = 'compiling layer-composition recipe...';
-    await emitRecipe('layer-compositions', 'recipes/layer-compositions.json', createRasterFamilyRecipe(DEFAULT_SET_ARCHIVE, 'layer-compositions'), { materialize: false });
+    await emitRecipe('layer-compositions', 'recipes/layer-compositions.json', createRasterFamilyRecipe(REFERENCE_SET_ARCHIVE, 'layer-compositions'), { materialize: false });
   }
   if (stageEnabled('sans-glyphs')) {
     collectionStatus.textContent = 'compiling sans-glyph recipe...';
-    await emitRecipe('sans-glyphs', 'recipes/sans-glyphs.json', createTwoColorFamilyRecipe(DEFAULT_SET_ARCHIVE, {
+    await emitRecipe('sans-glyphs', 'recipes/sans-glyphs.json', createTwoColorFamilyRecipe(REFERENCE_SET_ARCHIVE, {
       familyId: 'sans-glyphs',
       sourceForeground: '#000000',
       sourceBackground: '#ffffff',
@@ -506,7 +506,7 @@ async function buildCollection() {
   }
   if (stageEnabled('serif-glyphs')) {
     collectionStatus.textContent = 'compiling serif-glyph recipe...';
-    await emitRecipe('serif-glyphs', 'recipes/serif-glyphs.json', createTwoColorFamilyRecipe(DEFAULT_SET_ARCHIVE, {
+    await emitRecipe('serif-glyphs', 'recipes/serif-glyphs.json', createTwoColorFamilyRecipe(REFERENCE_SET_ARCHIVE, {
       familyId: 'serif-glyphs',
       sourceForeground: '#ff0000',
       sourceBackground: '#0000ff',
@@ -516,7 +516,7 @@ async function buildCollection() {
   }
   if (stageEnabled('numbered-results')) {
     collectionStatus.textContent = 'compiling ordered-result recipe...';
-    await emitRecipe('ordered-results', 'recipes/ordered-results.json', createOrderedResultsRecipe(DEFAULT_SET_ARCHIVE), { materialize: false });
+    await emitRecipe('ordered-results', 'recipes/ordered-results.json', createOrderedResultsRecipe(REFERENCE_SET_ARCHIVE), { materialize: false });
   }
   const manifest = {
     format: 'bin-block-collection/v3',
@@ -546,7 +546,7 @@ async function buildCollection() {
   if (recipeDocuments.length) zip.file(`${root}/recipes/bin-block-recipe-v1.schema.json`, JSON.stringify(recipeJsonSchema(), null, 2));
   await updateCollectionCount();
   zip.file(`${root}/texture-atlas.png`, await canvasBlob(atlasPreview));
-  manifest.atlas = { width: atlasPreview.width, height: atlasPreview.height, columns: DEFAULT_SET_ARCHIVE.atlas.columns };
+  manifest.atlas = { width: atlasPreview.width, height: atlasPreview.height, columns: REFERENCE_SET_ARCHIVE.atlas.columns };
   zip.file(`${root}/manifest.json`, JSON.stringify(manifest, null, 2));
   collectionStatus.textContent = 'compressing collection...';
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } }, ({ percent }) => { collectionStatus.textContent = `compressing ${Math.round(percent)}%`; });
