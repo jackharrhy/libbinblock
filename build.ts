@@ -107,6 +107,42 @@ const referenceSetRecipe = parseRecipeDocument(createReferenceSetRasterRecipe(ar
 if (referenceSetRecipe.metadata.imageCount !== archive.files.length)
   throw new Error('The reference-set recipe does not cover the complete archive.');
 
+const blueHighVariantSlice = [
+  'col_blue_hi-grad00blk100.png',
+  'col_blue_hi-grad00blk25.png',
+  'col_blue_hi-grad00wht.png',
+  'col_blue_hi-grad01blk100.png',
+  'col_blue_hi-grad01blk25.png',
+  'col_blue_hi-grad01wht.png',
+  'col_blue_hi-grad02blk100.png',
+  'col_blue_hi-grad02blk50.png',
+  'col_blue_hi-grad02wht.png',
+  'col_blue_hi-grad03blk100.png',
+  'col_blue_hi-grad03blk25.png',
+  'col_blue_hi-grad03blk50.png',
+  'col_blue_hi-grad03wht100.png',
+  'col_blue_hi-grad04blk100.png',
+  'col_blue_hi-grad04blk50.png',
+  'col_blue_hi-grad04wht.png',
+];
+const archiveFilesByPath = new Map(archive.files.map((file) => [file.path, file]));
+const comparisonFixtures = {
+  'gradient-masks': archive.files
+    .filter((file) => file.path.startsWith('Gradient Layers Alpha Maps/'))
+    .map(({ path, base64 }) => ({
+      key: path
+        .split('/')
+        .at(-1)
+        ?.replace(/\.png$/i, ''),
+      base64,
+    })),
+  'gradient-variants-blue-hi': blueHighVariantSlice.map((filename) => {
+    const file = archiveFilesByPath.get(`col bin 2/rgb/${filename}`);
+    if (!file) throw new Error(`Missing comparison fixture: ${filename}`);
+    return { key: filename.replace(/\.png$/i, ''), base64: file.base64 };
+  }),
+};
+
 const result: esbuild.BuildResult = await esbuild.build({
   entryPoints: ['src/app.ts'],
   bundle: true,
@@ -125,6 +161,14 @@ const result: esbuild.BuildResult = await esbuild.build({
         }));
         build.onLoad({ filter: /.*/, namespace: 'reference-set' }, (): esbuild.OnLoadResult => ({
           contents: `export const REFERENCE_SET_ARCHIVE = ${JSON.stringify(archive)};`,
+          loader: 'js',
+        }));
+        build.onResolve({ filter: /^virtual:comparison-fixtures$/ }, (): esbuild.OnResolveResult => ({
+          path: 'fixtures',
+          namespace: 'comparison-fixtures',
+        }));
+        build.onLoad({ filter: /.*/, namespace: 'comparison-fixtures' }, (): esbuild.OnLoadResult => ({
+          contents: `export const COMPARISON_FIXTURES = ${JSON.stringify(comparisonFixtures)};`,
           loader: 'js',
         }));
       },

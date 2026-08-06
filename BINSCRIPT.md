@@ -15,6 +15,12 @@ The first functional slice supports:
 - Pure assignments and notebook output from standalone image-set expressions.
 - Ordered arrays of image sets; standalone flat image arrays share one preview row, while nested artifact collections retain separate rows inside one frame without unioning or compositing their artifacts.
 - Source-linked sliders, color controls, diagnostics, and inline artifact previews.
+- Reusable RGBA color bindings with integrated alpha-aware color pickers.
+- Recursive collection materialization, `collect`, `union`, `product`, `select`, and `slice`.
+- Collection-wide resize, rotate, opacity, tint, crop, mask, and source-over operations.
+- Composable linear, radial, square-distance, and border-distance gradients with legacy easing/rounding, canvas placement, and visible source-over composition.
+- Explicit `fixtures()` and `compare()` values with generated, reference, amplified-difference, and error-metric notebook previews.
+- Visible analytic `grad00`-`grad04` fields and the first 16 historic blue-high overlay variants, with ordered fixture comparison.
 
 BinScript is parsed and lowered without evaluating arbitrary JavaScript. Compilation still passes through the existing Zod recipe schema, dependency graph, and deterministic image engine.
 
@@ -43,7 +49,7 @@ The default program must eventually describe the complete 4,312-image pipeline i
 The document should visibly bind and compose:
 
 1. The default palette and flat-color family.
-2. Gradient masks, including the remaining compatibility raster.
+2. Gradient masks as visible axial, Euclidean, Chebyshev, border-distance, and layered radial fields.
 3. Historic gradient variants.
 4. Downscaled variants.
 5. Foreground-alpha fields and foreground composites.
@@ -57,13 +63,11 @@ A target shape is:
 
 ```binscript
 import "bingen/basic"
-import "bingen/reference-set"
-
 size := 64
 colors := default-palette()
 
 flat := colors.map(fill).size(size)
-masks := reference-masks(size)
+masks := collect([mask-00, mask-01, /* visible field bindings */, mask-18])
 variants := product(colors, masks).map(render-variant)
 downscaled := variants.map(resize(8))
 
@@ -85,7 +89,7 @@ The notebook should compile the whole graph lazily. Inline previews render bound
 
 1. Add lazy collection plans and `union`/`product`/`zip` combinators.
 2. Expose every existing generic image operation through BinScript.
-3. Add `bingen/reference-set` imports backed by the current exact family recipes.
+3. Add reference-set data imports only for genuinely irreducible assets, not hidden image recipes.
 4. Translate each default family into visible bindings in the starter program.
 5. Add program-driven atlas and package exports.
 6. Replace compatibility imports incrementally as analytic formulas and fonts are recovered.

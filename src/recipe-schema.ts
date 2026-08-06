@@ -157,8 +157,23 @@ export type ImageNode =
       width: IntegerValue;
       height: IntegerValue;
       angle: NumberValue;
+      extent?: NumberValue;
       easing: 'linear' | 'smoothstep' | 'legacy';
       stops: GradientStop[];
+    }
+  | {
+      op: 'alpha-field';
+      width: IntegerValue;
+      height: IntegerValue;
+      metric: 'x' | 'y' | 'euclidean' | 'chebyshev' | 'border';
+      centerX: NumberValue;
+      centerY: NumberValue;
+      radius: NumberValue;
+      direction: 'in' | 'out';
+      easing: 'linear' | 'smoothstep' | 'legacy';
+      color: ColorValue;
+      levels?: number[];
+      legacyRadialRounding?: boolean;
     }
   | {
       op: 'gradient';
@@ -171,6 +186,7 @@ export type ImageNode =
       radiusY: NumberValue;
       rotation: NumberValue;
       easing: 'linear' | 'smoothstep' | 'legacy';
+      legacyRadialRounding?: boolean;
       stops: GradientStop[];
     }
   | { op: 'raster'; asset: StringValue }
@@ -189,6 +205,7 @@ export type ImageNode =
     }
   | { op: 'composite'; destination: ImageNode; source: ImageNode; offsetX: IntegerValue; offsetY: IntegerValue; opacity: NumberValue }
   | { op: 'opacity'; source: ImageNode; opacity: NumberValue }
+  | { op: 'invert-alpha'; source: ImageNode }
   | { op: 'set-visible-rgb' | 'tint-chroma'; source: ImageNode; color: ColorValue }
   | {
       op: 'remap-two-color';
@@ -214,6 +231,20 @@ export const ImageNodeSchema: z.ZodType<ImageNode> = z.lazy(() =>
     }),
     z.strictObject({ op: z.literal('fill'), width: IntegerValueSchema, height: IntegerValueSchema, color: ColorValueSchema }),
     z.strictObject({
+      op: z.literal('alpha-field'),
+      width: IntegerValueSchema,
+      height: IntegerValueSchema,
+      metric: z.enum(['x', 'y', 'euclidean', 'chebyshev', 'border']),
+      centerX: NumberValueSchema.default(0),
+      centerY: NumberValueSchema.default(0),
+      radius: NumberValueSchema,
+      direction: z.enum(['in', 'out']).default('out'),
+      easing: z.enum(['linear', 'smoothstep', 'legacy']).default('linear'),
+      color: ColorValueSchema.default('#000000'),
+      levels: z.array(z.number().int().min(0).max(255)).min(1).optional(),
+      legacyRadialRounding: z.boolean().default(false),
+    }),
+    z.strictObject({
       op: z.literal('gradient'),
       shape: z.literal('preset'),
       width: IntegerValueSchema,
@@ -228,6 +259,7 @@ export const ImageNodeSchema: z.ZodType<ImageNode> = z.lazy(() =>
       width: IntegerValueSchema,
       height: IntegerValueSchema,
       angle: NumberValueSchema.default(180),
+      extent: NumberValueSchema.optional(),
       easing: z.enum(['linear', 'smoothstep', 'legacy']).default('linear'),
       stops: z.array(GradientStopSchema).min(2),
     }),
@@ -242,6 +274,7 @@ export const ImageNodeSchema: z.ZodType<ImageNode> = z.lazy(() =>
       radiusY: NumberValueSchema,
       rotation: NumberValueSchema.default(0),
       easing: z.enum(['linear', 'smoothstep', 'legacy']).default('linear'),
+      legacyRadialRounding: z.boolean().default(false),
       stops: z.array(GradientStopSchema).min(2),
     }),
     z.strictObject({ op: z.literal('raster'), asset: StringValueSchema }),
@@ -271,6 +304,7 @@ export const ImageNodeSchema: z.ZodType<ImageNode> = z.lazy(() =>
       opacity: NumberValueSchema.default(1),
     }),
     z.strictObject({ op: z.literal('opacity'), source: ImageNodeSchema, opacity: NumberValueSchema }),
+    z.strictObject({ op: z.literal('invert-alpha'), source: ImageNodeSchema }),
     z.strictObject({ op: z.literal('set-visible-rgb'), source: ImageNodeSchema, color: ColorValueSchema }),
     z.strictObject({ op: z.literal('tint-chroma'), source: ImageNodeSchema, color: ColorValueSchema }),
     z.strictObject({

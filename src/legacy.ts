@@ -798,17 +798,92 @@ export interface EllipticalGradientSpec {
   rotation?: number;
   stops: readonly GradientStop[];
   easing?: GradientEasing;
+  legacyRadialRounding?: boolean;
 }
 
 export interface LinearGradientSpec {
   width: number;
   height: number;
   angle?: number;
+  extent?: number;
   stops: readonly GradientStop[];
   easing?: GradientEasing;
 }
 
-export function renderLinearGradient({ width, height, angle = 180, stops, easing = 'linear' }: LinearGradientSpec): Uint8ClampedArray {
+export interface AlphaFieldSpec {
+  width: number;
+  height: number;
+  metric: 'x' | 'y' | 'euclidean' | 'chebyshev' | 'border';
+  centerX?: number;
+  centerY?: number;
+  radius: number;
+  direction?: 'in' | 'out';
+  easing?: GradientEasing;
+  color?: Color;
+  levels?: readonly number[];
+  legacyRadialRounding?: boolean;
+}
+
+export function renderAlphaField({
+  width,
+  height,
+  metric,
+  centerX = 0,
+  centerY = 0,
+  radius,
+  direction = 'out',
+  easing = 'linear',
+  color = '#000000',
+  levels,
+  legacyRadialRounding = false,
+}: AlphaFieldSpec): Uint8ClampedArray {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
+    throw new Error('Alpha field dimensions must be positive integers.');
+  }
+  if (!Number.isFinite(radius) || radius === 0) throw new Error('Alpha field radius must be finite and non-zero.');
+  if (metric === 'border' && levels?.length === 0) throw new Error('Alpha field levels cannot be empty.');
+  const rgba = parseRgba(color);
+  const pixels = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const deltaX = x - centerX;
+      const deltaY = y - centerY;
+      const distanceSquared = deltaX ** 2 + deltaY ** 2;
+      let distance: number;
+      if (metric === 'x') distance = deltaX;
+      else if (metric === 'y') distance = deltaY;
+      else if (metric === 'euclidean') distance = Math.sqrt(distanceSquared);
+      else if (metric === 'chebyshev') distance = Math.max(Math.abs(deltaX), Math.abs(deltaY));
+      else distance = Math.min(x, y, width - 1 - x, height - 1 - y);
+
+      let alpha: number;
+      if (metric === 'border' && levels) {
+        alpha = levels[Math.min(levels.length - 1, Math.max(0, Math.floor(distance)))] ?? 0;
+      } else {
+        const amount = applyEasing(clamp01(distance / radius), easing);
+        alpha = Math.round(255 * (direction === 'in' ? 1 - amount : amount));
+        if (legacyRadialRounding && metric === 'euclidean' && RADIAL_ROUND_UP.has(distanceSquared)) {
+          alpha += direction === 'in' ? 1 : -1;
+        }
+      }
+      const offset = (y * width + x) * 4;
+      pixels[offset] = rgba[0];
+      pixels[offset + 1] = rgba[1];
+      pixels[offset + 2] = rgba[2];
+      pixels[offset + 3] = Math.round((alpha * rgba[3]) / 255);
+    }
+  }
+  return pixels;
+}
+
+export function renderLinearGradient({
+  width,
+  height,
+  angle = 180,
+  extent: explicitExtent,
+  stops,
+  easing = 'linear',
+}: LinearGradientSpec): Uint8ClampedArray {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
     throw new Error('Linear gradient dimensions must be positive integers.');
   }
@@ -819,15 +894,22 @@ export function renderLinearGradient({ width, height, angle = 180, stops, easing
   }
 
   const radians = (angle * Math.PI) / 180;
-  const directionX = Math.sin(radians);
-  const directionY = -Math.cos(radians);
+  const snapDirection = (value: number): number => {
+    if (Math.abs(value) < 1e-12) return 0;
+    if (Math.abs(Math.abs(value) - 1) < 1e-12) return Math.sign(value);
+    return value;
+  };
+  const directionX = snapDirection(Math.sin(radians));
+  const directionY = snapDirection(-Math.cos(radians));
   const extent = (Math.abs(directionX) * Math.max(1, width - 1) + Math.abs(directionY) * Math.max(1, height - 1)) / 2 || 1;
+  const length = explicitExtent ?? 2 * extent;
+  if (!(length > 0)) throw new Error('Linear gradient extent must be positive.');
   const pixels = new Uint8ClampedArray(width * height * 4);
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const centeredX = width === 1 ? 0 : x - (width - 1) / 2;
       const centeredY = height === 1 ? 0 : y - (height - 1) / 2;
-      const position = clamp01((centeredX * directionX + centeredY * directionY + extent) / (2 * extent));
+      const position = clamp01((centeredX * directionX + centeredY * directionY + extent) / length);
       let rightIndex = orderedStops.findIndex((stop) => stop.offset >= position);
       if (rightIndex < 0) rightIndex = orderedStops.length - 1;
       const leftIndex = Math.max(0, rightIndex - 1);
@@ -855,6 +937,7 @@ export function renderEllipticalGradient({
   rotation = 0,
   stops,
   easing = 'linear',
+  legacyRadialRounding = false,
 }: EllipticalGradientSpec): Uint8ClampedArray {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
     throw new Error('Ellipse dimensions must be positive integers.');
@@ -873,6 +956,7 @@ export function renderEllipticalGradient({
     for (let x = 0; x < width; x += 1) {
       const deltaX = x - centerX;
       const deltaY = y - centerY;
+      const distanceSquared = deltaX ** 2 + deltaY ** 2;
       const rotatedX = deltaX * cosine + deltaY * sine;
       const rotatedY = -deltaX * sine + deltaY * cosine;
       const distance = clamp01(Math.hypot(rotatedX / radiusX, rotatedY / radiusY));
@@ -887,6 +971,9 @@ export function renderEllipticalGradient({
       const offset = (y * width + x) * 4;
       for (let channel = 0; channel < 4; channel += 1) {
         pixels[offset + channel] = Math.round(left.rgba[channel] * (1 - amount) + right.rgba[channel] * amount);
+      }
+      if (legacyRadialRounding && RADIAL_ROUND_UP.has(distanceSquared)) {
+        pixels[offset + 3] += orderedStops[0].rgba[3] > orderedStops[orderedStops.length - 1].rgba[3] ? 1 : -1;
       }
     }
   }

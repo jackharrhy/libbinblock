@@ -26,4 +26,8 @@ declare module 'virtual:reference-set-archive' {
   export const REFERENCE_SET_ARCHIVE: ReferenceSetArchivePayload;
 }
 
+declare module 'virtual:comparison-fixtures' {
+  export const COMPARISON_FIXTURES: Readonly<Record<string, readonly { key: string; base64: string }[]>>;
+}
+
 declare module '*.css';

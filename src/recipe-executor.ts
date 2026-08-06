@@ -3,6 +3,7 @@ import type { PresetName } from './core.js';
 import {
   compositeSourceOver,
   fillRGBA,
+  renderAlphaField,
   renderEllipticalGradient,
   renderLinearGradient,
   resizeLanczos3RGBA,
@@ -224,6 +225,27 @@ export const BUILTIN_IMAGE_OPERATIONS = {
     const height = integer(node.height, context, 'fill height', 1);
     return { width, height, pixels: fillRGBA(width, height, string(node.color, context, 'fill color')) };
   },
+  'alpha-field': async (node, context) => {
+    const width = integer(node.width, context, 'alpha field width', 1);
+    const height = integer(node.height, context, 'alpha field height', 1);
+    return {
+      width,
+      height,
+      pixels: renderAlphaField({
+        width,
+        height,
+        metric: node.metric,
+        centerX: number(node.centerX, context, 'alpha field centerX'),
+        centerY: number(node.centerY, context, 'alpha field centerY'),
+        radius: number(node.radius, context, 'alpha field radius'),
+        direction: node.direction,
+        easing: node.easing,
+        color: string(node.color, context, 'alpha field color'),
+        levels: node.levels,
+        legacyRadialRounding: node.legacyRadialRounding,
+      }),
+    };
+  },
   gradient: async (node, context) => {
     const width = integer(node.width, context, 'gradient width', 1);
     const height = integer(node.height, context, 'gradient height', 1);
@@ -248,6 +270,7 @@ export const BUILTIN_IMAGE_OPERATIONS = {
           width,
           height,
           angle: number(node.angle, context, 'gradient angle'),
+          extent: node.extent === undefined ? undefined : number(node.extent, context, 'gradient extent', Number.EPSILON),
           easing: node.easing,
           stops: node.stops.map((stop) => ({
             offset: number(stop.offset, context, 'gradient stop offset', 0, 1),
@@ -269,6 +292,7 @@ export const BUILTIN_IMAGE_OPERATIONS = {
         radiusY: number(node.radiusY, context, 'gradient radiusY', Number.EPSILON),
         rotation: number(node.rotation, context, 'gradient rotation'),
         easing: node.easing,
+        legacyRadialRounding: node.legacyRadialRounding,
         stops: node.stops.map((stop) => ({
           offset: number(stop.offset, context, 'gradient stop offset', 0, 1),
           color: string(stop.color, context, 'gradient stop color'),
@@ -323,6 +347,12 @@ export const BUILTIN_IMAGE_OPERATIONS = {
     const amount = number(node.opacity, context, 'opacity', 0, 1);
     const pixels = new Uint8ClampedArray(source.pixels);
     for (let offset = 3; offset < pixels.length; offset += 4) pixels[offset] = Math.round(pixels[offset] * amount);
+    return { ...source, pixels };
+  },
+  'invert-alpha': async (node, context) => {
+    const source = await context.execute(node.source, context);
+    const pixels = new Uint8ClampedArray(source.pixels);
+    for (let offset = 3; offset < pixels.length; offset += 4) pixels[offset] = 255 - pixels[offset];
     return { ...source, pixels };
   },
   'set-visible-rgb': async (node, context) => {

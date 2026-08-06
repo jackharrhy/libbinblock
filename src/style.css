@@ -73,11 +73,75 @@ input {
   vertical-align: middle;
 }
 
-.binscript-color-control input {
+.binscript-color-swatch {
+  display: block;
   width: 28px;
   height: 19px;
+  border: 1px solid #111;
+  padding: 0;
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #bbb 25%, transparent 25%), linear-gradient(-45deg, #bbb 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #bbb 75%), linear-gradient(-45deg, transparent 75%, #bbb 75%);
+  background-position:
+    0 0,
+    0 4px,
+    4px -4px,
+    -4px 0;
+  background-size: 8px 8px;
+  cursor: pointer;
+}
+
+.binscript-color-control {
   border: 0;
   padding: 0;
+  background: transparent;
+}
+
+.binscript-color-swatch-value {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.binscript-color-popover {
+  width: 228px;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #111;
+  background: #fff;
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 18%);
+}
+
+.binscript-color-popover hex-alpha-color-picker {
+  display: flex;
+  width: 210px;
+  height: 210px;
+}
+
+.binscript-color-popover hex-alpha-color-picker::part(saturation) {
+  border-radius: 0;
+}
+
+.binscript-color-popover hex-alpha-color-picker::part(hue),
+.binscript-color-popover hex-alpha-color-picker::part(alpha) {
+  border-radius: 0;
+}
+
+.binscript-color-popover hex-alpha-color-picker::part(saturation-pointer),
+.binscript-color-popover hex-alpha-color-picker::part(hue-pointer),
+.binscript-color-popover hex-alpha-color-picker::part(alpha-pointer) {
+  width: 18px;
+  height: 18px;
+}
+
+.binscript-color-value {
+  width: 100%;
+  margin-top: 8px;
+  padding: 5px 6px;
+  border: 1px solid #111;
+  background: #fff;
+  font: inherit;
 }
 
 .binscript-number-control input[type='range'] {
@@ -92,6 +156,7 @@ input {
 }
 
 .binscript-preview-group {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -111,6 +176,19 @@ input {
   background-size: 10px 10px;
 }
 
+.binscript-preview-group-dimensions {
+  position: absolute;
+  z-index: 1;
+  top: 7px;
+  left: 7px;
+  padding: 2px 3px;
+  border: 1px solid #111;
+  background: rgb(255 255 255 / 88%);
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .binscript-preview-strip {
   display: flex;
   align-items: center;
@@ -120,11 +198,52 @@ input {
   padding: 6px;
 }
 
+.binscript-preview-item {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
 canvas.binscript-preview-canvas {
   width: 64px;
   height: 64px;
   border: 1px solid #111;
   background: transparent;
+  image-rendering: pixelated;
+}
+
+.binscript-preview-dimensions {
+  color: #444;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.binscript-comparison-item {
+  justify-items: start;
+  padding: 5px;
+  border: 1px solid #777;
+  background: rgb(255 255 255 / 82%);
+}
+
+.binscript-comparison-images {
+  display: flex;
+  gap: 4px;
+}
+
+.binscript-comparison-images figure {
+  margin: 0;
+}
+
+.binscript-comparison-images figcaption,
+.binscript-comparison-metrics {
+  display: block;
+  margin-top: 3px;
+  color: #333;
+  font-size: 9px;
+  line-height: 1.2;
+  text-transform: lowercase;
+  white-space: nowrap;
 }
 
 @media (max-width: 620px) {
