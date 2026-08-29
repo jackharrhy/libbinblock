@@ -34,7 +34,7 @@ converts them to tiled
 `GX_TF_RGBA8`, flushes the CPU cache, and initializes a `GXTexObj` for each one.
 The live demo displays the complete gently bobbing 4×3 gallery at each
 Binblock's native pixel dimensions with nearest-neighbor sampling. Its suite
-uses the canonical hard primary, low-color, neutral, and legacy skin palette,
+uses the canonical hard primary, low-color, neutral, and warm skin palette,
 with gradients reserved for explicitly radial or diagonal examples. HOME exits
 the demo. It prints `BINBLOCK_WII_DEMO_OK` only after the complete
 load/enumerate/render/upload path succeeds.

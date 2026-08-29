@@ -29,7 +29,7 @@ actor, collision shape, and HUD as ordinary Godot nodes.
 
 The world and gallery intentionally use Binblock's canonical harsh palette:
 full-intensity primaries, their low-color partners, black/white/gray, and the
-legacy skin tones. Textures use nearest-neighbor sampling and the gallery keeps
+warm skin tones. Textures use nearest-neighbor sampling and the gallery keeps
 each artifact at its authored pixel dimensions rather than stretching it to
 fill a modern preview card.
 

@@ -105,7 +105,7 @@ function nodeFunction(node: BinBlockGraphNode): { source: string; bounded: boole
     return { source: `vec4 ${name}(vec2 p){${gradientSample(position, node.stops, node.options[1])}}`, bounded: true };
   }
   if (node.kind === 5) {
-    if (node.options[1] !== 0) throw new Error('unsupported legacy ellipse rounding');
+    if (node.options[1] !== 0) throw new Error('unsupported reference-exact ellipse rounding');
     const [cx, cy, rx, ry, rotation] = node.scalars;
     const cosine = Math.cos(rotation);
     const sine = Math.sin(rotation);

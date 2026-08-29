@@ -117,5 +117,6 @@ maximum error, first mismatch, and both decoded-pixel SHA-256 values. Current
 non-zero bounds are at most 13 for the recovered blue gradient slice and at most
 2 for recovered Lanczos3 downscales; raster-backed contracts remain exact.
 
-The complete release evidence and replay commands are indexed in
-`docs/lib-plan-compliance.md`.
+The implemented components and release matrix are summarized in
+`docs/implementation-status.md`; the executable CI jobs live in
+`.github/workflows/ci.yml`.

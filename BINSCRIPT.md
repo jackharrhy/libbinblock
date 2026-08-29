@@ -3,8 +3,8 @@
 BinScript is the primary libbinblock interface. Its production implementation is the
 portable C frontend and semantic compiler under `lib/frontend` and
 `lib/semantic`; the browser, CLI, Godot adapter, and Wii adapter consume the same
-compiled graph. JSON recipes are retained only in `legacy-ts/` for differential
-evidence and are not the core IR.
+compiled graph. BinScript is the sole high-level authoring format in this
+repository; the semantic graph is its core IR.
 
 ## Current language
 
@@ -34,7 +34,7 @@ The current C-owned vertical slice supports:
   analytic, alias, and raster-backed conformance contracts.
 
 BinScript is parsed and lowered without evaluating arbitrary JavaScript. The C
-semantic graph—not the old Zod schema—defines production execution.
+semantic graph defines production execution.
 
 ## Language work
 

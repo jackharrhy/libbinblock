@@ -1,10 +1,9 @@
 # libbinblock follow-on work
 
-The `LIB_PLAN.md` architecture and its completion gates are implemented and
-audited in `docs/lib-plan-compliance.md`. Production semantics are owned by
-portable C; the browser and CLI share the compiler and rasterizer; collections
-are lazy; all 4,312 reference outputs conform; and WebGL2, Godot 4.5, libogc2,
-and Dolphin runtime paths have passed their integration gates.
+The portable architecture is implemented and production semantics are owned by
+C. The browser and CLI share the compiler and rasterizer; collections are lazy;
+all 4,312 reference outputs conform; and WebGL2, Godot 4.5, libogc2, and Dolphin
+runtime paths have passed their integration gates.
 
 Remaining work is product depth and release engineering:
 
@@ -28,5 +27,5 @@ Remaining work is product depth and release engineering:
 - Add richer package outputs such as texture atlases, engine-native imports, and
   additional original-byte-preserving container formats.
 
-The locked archive, TypeScript oracle, and differential tests remain evidence;
-they do not define production language, collection, graph, or pixel semantics.
+The locked archive and conformance tests remain evidence; they do not define
+production language, collection, graph, or pixel semantics.
