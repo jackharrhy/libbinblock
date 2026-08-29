@@ -41,8 +41,8 @@ every archive family, transparent-RGB behavior, map 18, one ordered pixel alias,
 and one ordered raster exception. It is intended for fast cross-implementation
 checks before running the complete archive conformance suite.
 
-The 960 ordered-result aliases use the recovered semantic mapping in the legacy
-oracle and are rechecked against decoded pixel hashes on every inventory run. The
-12 missing `grad06blk50` exports remain explicit raster fallbacks. Other duplicate
-groups use the first normalized path in manifest order as their deterministic
-canonical target.
+The 960 ordered-result aliases use the semantic mapping encoded in the manifest
+generator and are rechecked against decoded pixel hashes on every inventory run.
+The 12 missing `grad06blk50` exports remain explicit raster fallbacks. Other
+duplicate groups use the first normalized path in manifest order as their
+deterministic canonical target.

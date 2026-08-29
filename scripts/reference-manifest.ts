@@ -3,7 +3,6 @@ import { inflateSync } from 'node:zlib';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { getResultAliasMapping } from '../legacy-ts/src/legacy.js';
 
 const MANIFEST_FORMAT = 'binblock-reference-manifest/v1';
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -78,6 +77,105 @@ const FAMILY_DEFINITIONS: readonly FamilyDefinition[] = [
   { id: 'serif-glyphs', path: 'New folder', imageCount: 26, defaultEquivalence: 'raster-fallback' },
   { id: 'ordered-results', path: 'result', imageCount: 972, defaultEquivalence: 'raster-fallback' },
 ];
+
+const ORDERED_RESULT_GROUPS = [
+  'col_blue_hi',
+  'col_blue_lo',
+  'col_cyan_hi',
+  'col_cyan_lo',
+  'col_green_hi',
+  'col_green_lo',
+  'col_pink_hi',
+  'col_pink_lo',
+  'col_red_hi',
+  'col_red_lo',
+  'col_yellow_hi',
+  'col_yellow_lo',
+] as const;
+
+const ORDERED_RESULT_VARIANTS = [
+  'grad00blk25',
+  'grad00blk100',
+  'grad00wht',
+  'grad01blk25',
+  'grad01blk100',
+  'grad01wht',
+  'grad02blk50',
+  'grad02blk100',
+  'grad02wht',
+  'grad03blk25',
+  'grad03blk50',
+  'grad03blk100',
+  'grad03wht100',
+  'grad04blk50',
+  'grad04blk100',
+  'grad04wht',
+  'grad05blk50',
+  'grad05blk100',
+  'grad05wht50',
+  'grad06blk40',
+  'grad06blk50',
+  'grad07blk40-rotCCW',
+  'grad07blk40',
+  'grad07wht-rotCCW',
+  'grad07wht',
+  'grad08blk-rotCCW',
+  'grad08blk',
+  'grad08blk50-rotCCW',
+  'grad08blk50',
+  'grad08wht100-rotCCW',
+  'grad08wht100',
+  'grad09blk-rotCCW',
+  'grad09blk',
+  'grad09wht-rotCCW',
+  'grad09wht',
+  'grad10blk-rotCCW',
+  'grad10blk-rotCW',
+  'grad10blk',
+  'grad10blk50-rotCCW',
+  'grad10blk50-rotCW',
+  'grad10blk50',
+  'grad10wht70-rotCCW',
+  'grad10wht70-rotCW',
+  'grad10wht70',
+  'grad10wht100-rotCCW',
+  'grad10wht100-rotCW',
+  'grad10wht100',
+  'grad11blk-rotCCW',
+  'grad11blk-rotCW',
+  'grad11blk',
+  'grad11wht-rotCCW',
+  'grad11wht-rotCW',
+  'grad11wht',
+  'grad11wht60-rotCCW',
+  'grad11wht60-rotCW',
+  'grad11wht60',
+  'grad12blk-rotCCW',
+  'grad12blk-rotCW',
+  'grad12blk',
+  'grad12blk50-rotCCW',
+  'grad12blk50-rotCW',
+  'grad12blk50',
+  'grad12wht-rotCCW',
+  'grad12wht-rotCW',
+  'grad12wht',
+  'grad13wht-rotCCW',
+  'grad13wht-rotCW',
+  'grad13wht',
+  'grad14blk25',
+  'grad14blk50',
+  'grad14wht',
+  'grad15blk25',
+  'grad15blk50',
+  'grad15blk100',
+  'grad15wht',
+  'grad16blk20',
+  'grad16wht',
+  'grad17blk',
+  'grad17blk50',
+  'grad17wht',
+  '',
+] as const;
 
 const BOUNDED_BLUE_VARIANTS = new Set([
   'grad00blk100',
@@ -298,6 +396,16 @@ function canonicalAliases(files: readonly ReferenceManifestFile[], field: 'encod
   return aliases;
 }
 
+function orderedResultAlias(index: number): { rgbPath: string; exactPixelAliasExpected: boolean } {
+  const group = ORDERED_RESULT_GROUPS[Math.floor(index / ORDERED_RESULT_VARIANTS.length)];
+  const variant = ORDERED_RESULT_VARIANTS[index % ORDERED_RESULT_VARIANTS.length];
+  if (!group || variant === undefined) throw new Error(`Ordered result index is out of range: ${index}.`);
+  return {
+    rgbPath: `col bin 2/rgb/${group}${variant ? `-${variant}` : ''}.png`,
+    exactPixelAliasExpected: variant !== 'grad06blk50',
+  };
+}
+
 function applyAliases(files: ReferenceManifestFile[]): void {
   const byteAliases = canonicalAliases(files, 'encodedSha256');
   const pixelAliases = canonicalAliases(files, 'decodedRgba8Sha256');
@@ -306,7 +414,7 @@ function applyAliases(files: ReferenceManifestFile[]): void {
     if (file.family === 'ordered-results') {
       const match = /^result\/ColBinSet_(\d{4})\.png$/.exec(file.path);
       if (!match) throw new Error(`Ordered result has an unexpected path: ${file.path}.`);
-      const mapping = getResultAliasMapping(Number.parseInt(match[1], 10));
+      const mapping = orderedResultAlias(Number.parseInt(match[1], 10));
       if (mapping.exactPixelAliasExpected) {
         const target = filesByPath.get(mapping.rgbPath);
         if (!target) throw new Error(`Ordered result alias target does not exist: ${mapping.rgbPath}.`);

@@ -6,11 +6,9 @@ The browser notebook uses the library through WebAssembly and optionally
 validates supported previews through WebGL2; the native CLI uses the same
 compiler and rasterizer.
 
-The original TypeScript compiler and recipe executor live under `legacy-ts/` as
-a behavioral oracle only and are not part of the production bundle. See the
-[build instructions](docs/building.md), [implementation status](docs/implementation-status.md),
-the [gate-by-gate compliance matrix](docs/lib-plan-compliance.md), and the
-[historical architecture plan](LIB_PLAN.md).
+See the [build instructions](docs/building.md),
+[implementation status](docs/implementation-status.md),
+[architecture decisions](docs/decisions/), and [BinScript guide](BINSCRIPT.md).
 
 The complete lazy reference program is generated at
 `reference-set/reference-set.binscript`. Run `npm run conformance:reference` to
@@ -54,7 +52,6 @@ bindings, apps, and integrations consume it.
 | `tests/`            | Current native, language, fuzz, TypeScript, browser-Wasm, and integration tests                                   |
 | `scripts/`          | Build, inventory, benchmark, and generated-contract tooling                                                       |
 | `reference-set/`    | Checked-in 4,312-PNG conformance corpus plus its generated manifest, BinScript program, and TSV contract          |
-| `legacy-ts/`        | Retired TypeScript implementation, its tests, and its historical JSON recipe documentation; oracle only           |
 | `docs/`             | Build guidance, decisions, status, render profiles, and reference-corpus rationale                                |
 
 The large-by-file-count `reference-set/` directory is test source data, not a
