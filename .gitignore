@@ -1,6 +1,12 @@
 node_modules/
 dist/
 .build/
+.godot/
+integrations/godot/demo/bin/
+integrations/wii/demo/build/
+integrations/wii/demo/*.dol
+integrations/wii/demo/*.elf
+integrations/wii/demo/*.map
 .DS_Store
 .env
 .env.*

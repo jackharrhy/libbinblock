@@ -1,0 +1,29 @@
+import "binblock/basic"
+
+tile-size := 48
+actor-size := 40
+actor-color := #ff0000
+
+meadow := fill(#00ff00).size(tile-size).over(rg(transparent-black 46%, #000000aa, width: tile-size, height: tile-size, center: [23.5, 23.5], radius: 24, easing: "legacy"))
+path := lg(90deg, #808000 0%, #808000 14%, #ffff00 15%, #ffff00 84%, #808000 85%, #808000 100%).size(tile-size)
+water := lg(135deg, #000080 0%, #0000ff 48%, #00ffff 49%, #000080 100%).size(tile-size)
+bloom := meadow.over(rg(#ff00ff 28%, transparent-white 29%, width: tile-size, height: tile-size, center: [24, 24], radius: 15, easing: "legacy"))
+stone := meadow.over(rg(#c0c0c0 45%, transparent-white 70%, width: tile-size, height: tile-size, center: [25, 23], radius-x: 19, radius-y: 15, easing: "legacy"))
+moss := fill(#008000).size(tile-size).over(rg(#ffa169 22%, transparent-white, width: tile-size, height: tile-size, center: [15, 12], radius: 23, easing: "legacy")).over(rg(transparent-black 45%, black, width: tile-size, height: tile-size, center: [23.5, 23.5], radius: 24, easing: "legacy"))
+
+tiles := collect([
+  artifact("meadow.png", meadow),
+  artifact("path.png", path),
+  artifact("water.png", water),
+  artifact("bloom.png", bloom),
+  artifact("stone.png", stone),
+  artifact("moss.png", moss),
+])
+
+actor-mask := rg(white 58%, transparent-white, width: actor-size, height: actor-size, center: [20, 20], radius-x: 19, radius-y: 17, easing: "legacy")
+actor-body := fill(actor-color).size(actor-size).mask(actor-mask)
+actor-glow := rg(white 22%, transparent-white 23%, width: actor-size, height: actor-size, center: [13, 11], radius: 11, easing: "legacy")
+actor := artifact("wanderer.png", actor-body.over(actor-glow))
+
+tiles
+actor

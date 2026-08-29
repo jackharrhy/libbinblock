@@ -18,3 +18,102 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run test:c:sanitize
+
+  native-release-and-32-bit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+      - run: cmake -S . -B .build/release -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build .build/release && ctest --test-dir .build/release --output-on-failure
+      - run: cmake -S . -B .build/32bit -G Ninja -DBB_BUILD_TESTS=OFF -DBB_BUILD_CLI=OFF -DCMAKE_C_FLAGS=-m32
+      - run: cmake --build .build/32bit
+
+  full-conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run conformance:reference
+
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - run: >-
+          CC=clang cmake -S . -B .build/fuzz -G Ninja
+          -DBB_BUILD_FUZZERS=ON -DBB_BUILD_TESTS=OFF -DBB_BUILD_CLI=OFF
+      - run: cmake --build .build/fuzz
+      - run: |-
+          for target in syntax semantic bbm graph collection raster; do
+            .build/fuzz/binblock-fuzz-$target -runs=1000
+          done
+
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: git clone --depth 1 https://github.com/emscripten-core/emsdk.git .build/emsdk
+      - run: .build/emsdk/emsdk install 6.0.5 && .build/emsdk/emsdk activate 6.0.5
+      - run: source .build/emsdk/emsdk_env.sh && npm run test:wasm && npm run build
+
+  godot-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - run: git clone --depth 1 --branch godot-4.5-stable https://github.com/godotengine/godot-cpp.git .build/godot-cpp
+      - run: >-
+          cmake -S . -B .build/godot -G Ninja
+          -DBB_BUILD_GODOT=ON -DBB_BUILD_TESTS=OFF -DBB_BUILD_CLI=OFF
+          -DGODOT_CPP_ROOT=$PWD/.build/godot-cpp
+      - run: cmake --build .build/godot --target binblock-godot
+      - run: >-
+          curl -L --fail --retry 3
+          -o .build/Godot_v4.5-stable_linux.x86_64.zip
+          https://godot-releases.nbg1.your-objectstorage.com/4.5-stable/Godot_v4.5-stable_linux.x86_64.zip
+      - run: unzip -q .build/Godot_v4.5-stable_linux.x86_64.zip -d .build/godot-runtime
+      - run: >-
+          cmake
+          -DGODOT_EXECUTABLE=$PWD/.build/godot-runtime/Godot_v4.5-stable_linux.x86_64
+          -DGODOT_EXTENSION=$PWD/.build/godot/libbinblock_godot.so
+          -DPROJECT_ROOT=$PWD
+          -P tests/godot_smoke.cmake
+
+  wii-libogc2:
+    runs-on: ubuntu-latest
+    container: ghcr.io/extremscorner/libogc2:latest
+    env:
+      DEVKITPRO: /opt/devkitpro
+      DEVKITPPC: /opt/devkitpro/devkitPPC
+      PATH: /opt/devkitpro/devkitPPC/bin:/opt/devkitpro/tools/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - run: >-
+          cmake -S . -B .build/wii-libogc2 -G Ninja
+          -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/devkitPPC.cmake
+          -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build .build/wii-libogc2
+      - run: make -C integrations/wii/demo BINBLOCK_BUILD=$PWD/.build/wii-libogc2
+      - run: test -s integrations/wii/demo/binblock-wii-demo.dol
+      - run: /opt/devkitpro/devkitPPC/bin/powerpc-eabi-readelf -h integrations/wii/demo/binblock-wii-demo.elf | grep -E 'ELF32|2.s complement, big endian|PowerPC'
+      - run: /opt/devkitpro/devkitPPC/bin/powerpc-eabi-nm integrations/wii/demo/binblock-wii-demo.elf | grep -E 'bb_wii_program_load|bb_wii_program_render_and_upload|GX_Begin|GX_InitTexObj'

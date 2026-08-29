@@ -1,0 +1,8 @@
+import "binblock/basic"
+
+size := 64
+colors := palette(red: #ff0000, blue: #0000ff)
+blocks := colors.map(fill).size(size)
+fade := lg(180deg, white, transparent-white).size(size)
+outputs := blocks.mask(fade)
+outputs
