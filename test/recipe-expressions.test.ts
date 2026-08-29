@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { evaluateExpression } from '../src/recipe-expressions.js';
-import type { Expression } from '../src/recipe-schema.js';
+import { evaluateExpression } from '../legacy-ts/src/recipe-expressions.js';
+import type { Expression } from '../legacy-ts/src/recipe-schema.js';
 
 test('Mapbox-style expressions resolve variables, object properties, and literal arrays', () => {
   const context = {

@@ -1,0 +1,16 @@
+diagnostics	0
+parameters	1
+parameter	0	size	type=2
+graph	nodes=8
+node	1	linear-gradient	64x64	inputs=-	hash=a2abbe52c2ab8b4a8cecceb6884874c5	provenance=1
+node	2	resize	4x4	inputs=1	hash=b33094b57df2e5dcf40f9978a5fe8d7f	provenance=1
+node	3	fill	1x1	inputs=-	hash=902f4223ee6d421f6eef88485c9bfb92	provenance=1	color=#ff0000ff
+node	4	resize	4x4	inputs=3	hash=be6c8215022f8019506d3e891bfd0ac0	provenance=1
+node	5	mask	4x4	inputs=4,2	hash=63b6d98d99d5ff8211b9f47c3e59fe09	provenance=1
+node	6	fill	1x1	inputs=-	hash=273904de08a856030edecd889d51c42a	provenance=1	color=#0000ffff
+node	7	resize	4x4	inputs=6	hash=5ab4822b9216e64a585e5e022438fe91	provenance=1
+node	8	mask	4x4	inputs=7,2	hash=4181289fea2f452f5bbe25ed4cc59d56	provenance=1
+outputs	1
+output	0	type=13	cardinality=2
+artifact	0	0	key=red	path=red	root=5	alias=0
+artifact	0	1	key=blue	path=blue	root=8	alias=0

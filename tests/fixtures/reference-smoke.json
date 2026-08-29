@@ -1,0 +1,85 @@
+{
+  "format": "binblock-reference-smoke/v1",
+  "files": [
+    {
+      "path": "col/col_black_1.png",
+      "encodedSha256": "953d1700bd27cfa3f776bec89360c55b7bcf094132fb16394cb172e5f5edc16b",
+      "decodedRgba8Sha256": "62fb561c59d0cea247fc588f3311ee665375f35d8675b186e2792cb7dfcff88c"
+    },
+    {
+      "path": "Gradient Layers Alpha Maps/00.png",
+      "encodedSha256": "f50b52047bf3ad1a54d194e5a811f34e93a0971d89ac4d8e7db7cca658589c69",
+      "decodedRgba8Sha256": "c309c3c52f133fe4d512ad22fe3f214b0c881dd6e4f0a56869703eedc98398c9"
+    },
+    {
+      "path": "Gradient Layers Alpha Maps/04.png",
+      "encodedSha256": "6e019b706f70f7155e91f1025fcdd74791a396bf6d38a28e8b0d88398aa82427",
+      "decodedRgba8Sha256": "bf01ccefaa0b75d19e03aba185e6fe509faade9fc3bd8d9fbf5a0bdea5586b1f"
+    },
+    {
+      "path": "Gradient Layers Alpha Maps/18.png",
+      "encodedSha256": "eb3e80bec73c5bc08282f843b10d737d124ffef88ab259ea4eeb5e37380e43a3",
+      "decodedRgba8Sha256": "a8b04d9d433803b3eaa7e79478170af6532c200685aaf109472dcbe493b33635"
+    },
+    {
+      "path": "col bin 2/rgb/col_blue_hi-grad00blk100.png",
+      "encodedSha256": "f3e0b4fcb6c45c28788c92acf1c1f2e189c69f32c7d094de092ba3254e8c86d3",
+      "decodedRgba8Sha256": "4f3d7e7114f7372462d08d71a704535d92e0e5b21e6184ca2227e3ad91db4f91"
+    },
+    {
+      "path": "blue 64-8 24 bit/col_blue_hi-grad00blk100.png",
+      "encodedSha256": "3d1e92194579b72b22c96e3401ae403d12cbcd07439996f049ccb287886af55d",
+      "decodedRgba8Sha256": "894260508d2da013f5c4bf2ae7b292d1f942fad60b11be462cd64ebd8e7b6270"
+    },
+    {
+      "path": "red FG-Alpha/1.png",
+      "encodedSha256": "d765f9cbf4095f182c59877a0782400caaf11ca891c04db81fdb2949ab4f8255",
+      "decodedRgba8Sha256": "db1dc1dfa7f7827a93afad1071e2270b89c5cf4b3bda77f11c4b292205f32161"
+    },
+    {
+      "path": "Red-col fg-alpha Print/print output/0.png",
+      "encodedSha256": "19de96bccac46ce4b7f0f8ea5ca3e57ff15a89d760b236167724e4c4394642e0",
+      "decodedRgba8Sha256": "b4bd5127345214236e71b9915b4a384a86c6e1ff35cb7ef12f3b3dd8f22a4ccd"
+    },
+    {
+      "path": "brown bear/brown_bear_col_1.png",
+      "encodedSha256": "8477819b7e2d100acb4e0c3bda3a890d801692c0bf9f9d159fcc847bd50226be",
+      "decodedRgba8Sha256": "6587679cadce7b3e50f1e5c6d1f7a76c2f214a376f10cd1bad1094f3c5b51a93"
+    },
+    {
+      "path": "out4 - Select Library/Layer_0.png",
+      "encodedSha256": "4613ecbb96de3f19ff272a132f14c2653514dc65c92c5d80abac6806c09c2844",
+      "decodedRgba8Sha256": "cec70bab16526b61ad1311e8caee82e3c6f962bc0ad0e804ac9a43555b9d82d4"
+    },
+    {
+      "path": "out4 - modding/1901.png",
+      "encodedSha256": "04f89beea373a04389a223d9d33e3153e22830b7429ed8471db755d9619d8b25",
+      "decodedRgba8Sha256": "0ae5559b6a347b5af8cbac67d045674134a03f2b20edf197170f3c0d9982ea2c"
+    },
+    {
+      "path": "out4-special/0500-1-1.png",
+      "encodedSha256": "e6fa21aa41ba198a8995ba71ea0b047f23edfba9455f20f4cd2ed95ad5a79858",
+      "decodedRgba8Sha256": "6a1d481b6f2ddcd202bb81c09884211fa52af3b2970c4fe5a7c4aa3ce1297d70"
+    },
+    {
+      "path": "No AA 64px Black+White/A.png",
+      "encodedSha256": "5b8f73f39e53862b142886ff72dcb66273171fc66b6cce22e4922bdf933fa224",
+      "decodedRgba8Sha256": "852718869d01bd13b8bc8b5eb49c51b17e1ee5e2884de483f0269cbe04221fb5"
+    },
+    {
+      "path": "New folder/A1.png",
+      "encodedSha256": "4541afb69ace2ee69953b9e54e68085f78e6ab2d15e220aee7aa3897764c47f5",
+      "decodedRgba8Sha256": "e66fa6a566d310cedbf201e7b4f7f2098d0d60cc558326cdecc0b32d9e64d2a1"
+    },
+    {
+      "path": "result/ColBinSet_0000.png",
+      "encodedSha256": "5e37a9a495f037250f69e0b82b638e2045ccd7069a316eb9660e707a07f75251",
+      "decodedRgba8Sha256": "6efda267de4c44a49c882ac274057ad7c6d178ade52deab28a20e0312aad6481"
+    },
+    {
+      "path": "result/ColBinSet_0020.png",
+      "encodedSha256": "25cf2d2834e83038b5fc0344d426374c270265bd6d8fdb99fb5595741ff21c26",
+      "decodedRgba8Sha256": "d2fb633645618d358da437a55f92f8572c152245b3d941100b111620683646c2"
+    }
+  ]
+}

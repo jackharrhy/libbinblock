@@ -1,0 +1,47 @@
+import "binblock/basic"
+
+size := 64
+
+colors := palette(
+  c00: #000000,
+  c01: #111111,
+  c02: #222222,
+  c03: #333333,
+  c04: #444444,
+  c05: #555555,
+  c06: #666666,
+  c07: #777777,
+  c08: #888888,
+  c09: #999999,
+  c10: #aaaaaa,
+  c11: #bbbbbb,
+  c12: #cccccc,
+  c13: #dddddd,
+  c14: #eeeeee,
+  c15: #ffffff,
+).map(fill).size(size)
+
+masks := palette(
+  m00: #ffffff00,
+  m01: #ffffff0e,
+  m02: #ffffff1c,
+  m03: #ffffff2a,
+  m04: #ffffff38,
+  m05: #ffffff46,
+  m06: #ffffff55,
+  m07: #ffffff63,
+  m08: #ffffff71,
+  m09: #ffffff7f,
+  m10: #ffffff8d,
+  m11: #ffffff9b,
+  m12: #ffffffa9,
+  m13: #ffffffb7,
+  m14: #ffffffc5,
+  m15: #ffffffd3,
+  m16: #ffffffe1,
+  m17: #ffffffef,
+  m18: #ffffffff,
+).map(fill).size(size)
+
+outputs := product(colors, masks).map(mask-pair)
+outputs

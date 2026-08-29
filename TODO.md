@@ -1,70 +1,32 @@
-# Bingen roadmap
+# Bingen follow-on work
 
-## Current state
+The `LIB_PLAN.md` architecture and its completion gates are implemented and
+audited in `docs/lib-plan-compliance.md`. Production semantics are owned by
+portable C; the browser and CLI share the compiler and rasterizer; collections
+are lazy; all 4,312 reference outputs conform; and WebGL2, Godot 4.5, libogc2,
+and Dolphin runtime paths have passed their integration gates.
 
-- The embedded reference set contains 4,312 PNGs and is represented by `createReferenceSetRasterRecipe()`.
-- `bin-block-recipe/v1` is validated with Zod and exports as JSON Schema.
-- Mapbox-style expressions provide deterministic scalar parameters and naming.
-- Stages emit ordered artifact sets; downstream stages can consume those sets through `forEach` bindings.
-- Stage inputs support expression-based filtering and keyed selection in addition to Cartesian expansion.
-- The compiler rejects invalid operations, references, dependency cycles, duplicate keys, duplicate paths, unsafe paths, and excessive expansion.
-- The standalone browser build is now a full-screen BinScript notebook; the previous form, atlas, and ZIP interface has been removed.
-- The exact 4,312-image family recipes remain available as conformance oracles. Gradient masks `00-17` are visibly authored from BinScript primitives, mask `18` is a visible two-field analytic fit, and the first 16 blue-high `grad00`-`grad04` variants are visible analytic compositions.
+Remaining work is product depth and release engineering:
 
-## Family status
+- Validate packaged Wii builds on physical hardware and add a direct GX/TEV
+  lowering path beyond the current bounded CPU-bake and tiled-texture upload.
+- Publish signed Godot extension binaries for supported editor platforms, make
+  generated textures directly assignable as `Texture2D` resources, add a
+  first-class Binblock atlas/`TileSet` importer, and build richer editor UX
+  around the existing resource loader and Inspector properties.
+- Add a WebGPU lowering adapter and broaden accelerated coverage while retaining
+  explicit per-operation tolerances and CPU fallback.
+- Evolve BBM beyond the version-1 endian-stable validated-source envelope into a
+  compact semantic graph encoding only after that wire format is deliberately
+  versioned.
+- Recover more historic analytic formulas, identify and pin both font pipelines,
+  and replace raster-backed compatibility assets only when their per-file gates
+  pass.
+- Grow persistent fuzz corpora, longer scheduled fuzz runs, and performance
+  regression thresholds around the existing six libFuzzer targets and cold/warm
+  benchmark suite.
+- Add richer package outputs such as texture atlases, engine-native imports, and
+  additional original-byte-preserving container formats.
 
-`Pipeline` means both atlas preview and ZIP export use `compileRecipe()` for that family.
-
-| Semantic family         |   Images | Recipe                                  | Frontend                               | Exactness                                                         | Remaining work                                                                                                                |
-| ----------------------- | -------: | --------------------------------------- | -------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `flat-color`            |      16+ | Analytic                                | Pipeline                               | Pixel-exact                                                       | Add RGBA values and configurable dimensions                                                                                   |
-| `gradient-masks`        |       19 | Visible BinScript fields                | BinScript + pipeline                   | Alpha-exact `00-17`; near-exact analytic fit for `18`             | Recover exact mask `18` layer parameters and preserve historical white RGB quantization where required                        |
-| `gradient-variants`     |    1,202 | Visible BinScript slice + raster recipe | BinScript comparison + raster pipeline | First 16 analytic variants within 2 bytes; raster-exact remainder | Recover `grad05`-`grad17`, generalize across the palette, then add rotations and stable output paths                          |
-| `downscaled`            |       88 | Composable                              | Pipeline                               | Pixel-exact at default                                            | Feed canonical gradient-variant artifacts instead of pinned 8×8 sources after high-precision fields are recovered             |
-| `foreground-alpha`      |       22 | Two-stage composable                    | Pipeline                               | Raster-exact default; configurable tint                           | Replace pinned alpha fields with analytic or imported mask stages where possible                                              |
-| `foreground-composites` |      815 | Three-stage dependent recipe            | Pipeline                               | Raster-exact default; custom colors match recovered renderer      | Replace pinned output fallbacks as the remaining one-channel differences are resolved                                         |
-| `elliptical-gradients`  |       65 | Executable transformed-raster recipe    | Pipeline                               | Raster-exact default                                              | Encode each organic asset as multi-stop ellipse, axial field, raster layer, or ordered composition                            |
-| `layer-compositions`    |    1,061 | Executable raster recipe                | Recipe-backed atlas/byte passthrough   | Raster-exact                                                      | Convert source maps, fills, crop, offset, and source-over rules into recipes; recover special `0500*` and modding `1901-1917` |
-| `sans-glyphs`           |       26 | Executable two-color recipe             | Pipeline                               | Raster-exact default                                              | Identify and pin font, face, rasterization, baseline, hinting, and no-AA behavior; then use `glyph` adapter                   |
-| `serif-glyphs`          |       26 | Executable two-color recipe             | Pipeline                               | Raster-exact default                                              | Identify source font and layout; encode overlays as composition operations                                                    |
-| `ordered-results`       |      972 | Alias + exception recipe                | Recipe-backed atlas/byte passthrough   | 960 pixel aliases; 12 raster exceptions                           | Feed aliases from analytic gradient variants once that family is migrated                                                     |
-| Custom permutations     | Variable | Four-stage analytic recipe              | Pipeline                               | Deterministic                                                     | Expose its operation structure through the future recipe editor                                                               |
-
-## Compiler work
-
-- Add collection union operations, including an explicit `zip` combinator.
-- Add lazy planning and materialization. Raster-only outputs should pass original encoded bytes to ZIP export without decoding and re-encoding.
-- Add expected pixel hashes, analytic verification, and declarative `onMismatch` raster fallback.
-- Add normalized provenance to each artifact rather than storing only collection-level summaries.
-- Add generic pixel correction, placement/canvas, and richer alpha-field operations.
-- Make operation schemas extensible without editing the central Zod union while retaining closed validation for each registered namespace.
-- Add asset import, content hashing, dimension checks, and browser/Node font adapters.
-- Add collection-level recipe composition so selected family documents can be imported into one dependency graph rather than compiled independently.
-- Define profile semantics for numeric sRGB, interpolation, alpha handling, resize kernels, font rasterization, and PNG encoding.
-
-## Frontend work
-
-- Treat BinScript as the only primary browser interface; JSON remains compiler IR and an optional inspection view.
-- Follow the language, tooling, and full-pipeline plan in [`BINSCRIPT.md`](BINSCRIPT.md).
-- Open the complete default pipeline as visible BinScript source once lazy collection planning and reference-set imports are available.
-- Drive atlas and package exports from explicit BinScript output expressions rather than parallel frontend orchestration.
-- Reuse the mask comparison widget and metrics for each migrated family, then include comparison reports in program-driven exports.
-
-## Formula recovery
-
-- Recover exact high-precision formulas for historic `grad00-grad17` color fields.
-- Eliminate sparse blue Lanczos corrections by reproducing the upstream fields precisely.
-- Resolve the one-channel red foreground-composite differences.
-- Recover analytic recipes for special `0500*` outputs and modding `1901-1917`.
-- Replace brown-bear and eye raster recipes with editable layer stacks.
-- Identify both glyph source fonts and exact rasterization settings.
-- Classify the remaining duplicate groups as byte aliases, pixel aliases, or independently encoded equivalents.
-
-## Suggested order
-
-1. Add lazy raster passthrough, then make the full frontend compile one collection recipe.
-2. Replace the hard-coded stage catalogue and collection configuration with recipe-derived metadata.
-3. Add generic collection union and import/export of composed family recipes.
-4. Migrate layer compositions and organic gradients from raster recipes to analytic stacks.
-5. Add deterministic font assets and replace both glyph-mask recipes with `glyph` operations.
-6. Replace compatibility operations as exact analytic forms are recovered.
+The locked archive, TypeScript oracle, and differential tests remain evidence;
+they do not define production language, collection, graph, or pixel semantics.

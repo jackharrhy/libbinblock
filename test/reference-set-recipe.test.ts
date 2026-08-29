@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createCanvas, loadImage } from 'canvas';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { REFERENCE_SET_IMAGE_OPERATIONS } from '../src/reference-set-operations.js';
+import { REFERENCE_SET_IMAGE_OPERATIONS } from '../legacy-ts/src/reference-set-operations.js';
 import {
   createDownscaledRecipe,
   createCustomPermutationRecipe,
@@ -13,13 +13,13 @@ import {
   createGradientMaskRecipe,
   createReferenceSetRasterRecipe,
   createOrderedResultsRecipe,
-} from '../src/reference-set-recipe.js';
-import { compileRecipe, type ImageData } from '../src/recipe-executor.js';
-import { renderRedPrintArchiveOutput } from '../src/legacy.js';
-import { parseRecipeDocument } from '../src/recipe-schema.js';
-import { renderBlock } from '../src/core.js';
-import type { RasterAsset } from '../src/recipe-schema.js';
-import type { RasterData } from '../src/legacy.js';
+} from '../legacy-ts/src/reference-set-recipe.js';
+import { compileRecipe, type ImageData } from '../legacy-ts/src/recipe-executor.js';
+import { renderRedPrintArchiveOutput } from '../legacy-ts/src/legacy.js';
+import { parseRecipeDocument } from '../legacy-ts/src/recipe-schema.js';
+import { renderBlock } from '../legacy-ts/src/core.js';
+import type { RasterAsset } from '../legacy-ts/src/recipe-schema.js';
+import type { RasterData } from '../legacy-ts/src/legacy.js';
 
 interface ArchiveFixture {
   files: Array<{ path: string; sha256?: string }>;

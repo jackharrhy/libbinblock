@@ -24,7 +24,7 @@ input {
 
 .notebook-app {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   width: 100%;
   height: 100dvh;
   background: #fff;
@@ -34,6 +34,7 @@ input {
   z-index: 2;
   display: flex;
   align-items: center;
+  gap: 10px;
   min-height: 36px;
   padding: 7px 14px;
   border-bottom: 1px solid #111;
@@ -41,9 +42,27 @@ input {
 }
 
 .notebook-brand {
+  margin-right: auto;
   font-size: 14px;
   font-weight: 400;
   white-space: nowrap;
+}
+
+.notebook-bar button,
+.notebook-preview-start {
+  padding: 4px 7px;
+  border: 1px solid #111;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.notebook-preview-start input {
+  width: 7rem;
+  border: 0;
+  border-left: 1px solid #111;
+  margin-left: 5px;
+  padding-left: 7px;
 }
 
 #binscript-editor {
@@ -210,6 +229,67 @@ canvas.binscript-preview-canvas {
   border: 1px solid #111;
   background: transparent;
   image-rendering: pixelated;
+}
+
+.notebook-runtime-status,
+.notebook-parameters {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--line, #34363d);
+}
+
+.notebook-parameters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.notebook-parameters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notebook-workspace {
+  display: grid;
+  grid-template-columns: minmax(24rem, 1fr) minmax(18rem, 0.7fr);
+  min-height: 0;
+}
+
+.notebook-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  align-content: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  overflow: auto;
+  border-left: 1px solid var(--line, #34363d);
+}
+
+.notebook-preview figure {
+  margin: 0;
+}
+
+.notebook-preview canvas {
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.notebook-preview figcaption {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 800px) {
+  .notebook-workspace {
+    grid-template-columns: 1fr;
+  }
+  .notebook-preview {
+    border-left: 0;
+    border-top: 1px solid var(--line, #34363d);
+  }
 }
 
 .binscript-preview-dimensions {
