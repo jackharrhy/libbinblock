@@ -43,7 +43,7 @@ On macOS, the checked-in demo can be opened directly with:
 ```sh
 "/Applications/Godot 4.6.3.app/Contents/MacOS/Godot" \
   --editor \
-  --path "/Users/jack/repos/personal/bingen/integrations/godot/demo"
+  --path "$PWD/integrations/godot/demo"
 ```
 
 The runtime gate accepts an official Godot 4.5 executable and the built extension:

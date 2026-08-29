@@ -1,4 +1,4 @@
-# Bingen follow-on work
+# libbinblock follow-on work
 
 The `LIB_PLAN.md` architecture and its completion gates are implemented and
 audited in `docs/lib-plan-compliance.md`. Production semantics are owned by
