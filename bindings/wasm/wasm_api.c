@@ -864,7 +864,7 @@ bb_status bb_wasm_graph_node_get(
       out_info->options[1] = info.options.alpha_field.direction;
       out_info->options[2] = info.options.alpha_field.easing;
       out_info->options[3] = bb_wasm_rgba(info.options.alpha_field.color);
-      out_info->options[4] = info.options.alpha_field.legacy_radial_rounding;
+      out_info->options[4] = info.options.alpha_field.reference_radial_rounding;
       out_info->stop_count = (uint32_t)info.options.alpha_field.level_count;
       bb_wasm_store_double(&out_info->scalar_bits[0], info.options.alpha_field.center_x);
       bb_wasm_store_double(&out_info->scalar_bits[2], info.options.alpha_field.center_y);
@@ -884,7 +884,7 @@ bb_status bb_wasm_graph_node_get(
       break;
     case BB_IMAGE_NODE_ELLIPTICAL_GRADIENT:
       out_info->options[0] = info.options.elliptical_gradient.easing;
-      out_info->options[1] = info.options.elliptical_gradient.legacy_radial_rounding;
+      out_info->options[1] = info.options.elliptical_gradient.reference_radial_rounding;
       out_info->stop_count = (uint32_t)info.options.elliptical_gradient.stop_count;
       bb_wasm_store_double(&out_info->scalar_bits[0], info.options.elliptical_gradient.center_x);
       bb_wasm_store_double(&out_info->scalar_bits[2], info.options.elliptical_gradient.center_y);

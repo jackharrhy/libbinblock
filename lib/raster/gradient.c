@@ -8,7 +8,7 @@
 #include <string.h>
 
 static int bb_easing_is_valid(bb_easing easing) {
-  return easing == BB_EASING_LINEAR || easing == BB_EASING_SMOOTHSTEP || easing == BB_EASING_LEGACY;
+  return easing == BB_EASING_LINEAR || easing == BB_EASING_SMOOTHSTEP || easing == BB_EASING_REFERENCE;
 }
 
 static double bb_clamp_unit(double value) {
@@ -22,13 +22,13 @@ static double bb_apply_easing(double value, bb_easing easing) {
   if (easing == BB_EASING_SMOOTHSTEP) {
     return t * t * (3.0 - 2.0 * t);
   }
-  if (easing == BB_EASING_LEGACY) {
+  if (easing == BB_EASING_REFERENCE) {
     return 0.5 * t + 0.5 * (3.0 * t * t - 2.0 * t * t * t);
   }
   return t;
 }
 
-static int bb_legacy_radial_distance(double distance_squared) {
+static int bb_reference_radial_distance(double distance_squared) {
   static const uint16_t distances[] = {98, 116, 234, 433, 601, 720, 922};
   size_t index;
   for (index = 0; index < sizeof(distances) / sizeof(distances[0]); index += 1) {
@@ -85,8 +85,8 @@ bb_status bb_raster_alpha_field(
       } else {
         const double amount = bb_apply_easing(distance / desc->radius, desc->easing);
         alpha = bb_raster_round_u8(255.0 * (desc->direction == BB_ALPHA_DIRECTION_IN ? 1.0 - amount : amount));
-        if (desc->legacy_radial_rounding && desc->metric == BB_ALPHA_METRIC_EUCLIDEAN &&
-            bb_legacy_radial_distance(distance_squared)) {
+        if (desc->reference_radial_rounding && desc->metric == BB_ALPHA_METRIC_EUCLIDEAN &&
+            bb_reference_radial_distance(distance_squared)) {
           alpha += desc->direction == BB_ALPHA_DIRECTION_IN ? 1 : -1;
         }
       }
@@ -334,7 +334,7 @@ bb_status bb_raster_elliptical_gradient(
       const double distance = bb_clamp_unit(hypot(rotated_x / desc->radius_x, rotated_y / desc->radius_y));
       uint8_t *pixel = output->pixels + (size_t)y * output->desc.row_pitch + (size_t)x * 4;
       bb_gradient_sample(stops, desc->stop_count, distance, desc->easing, pixel);
-      if (desc->legacy_radial_rounding && bb_legacy_radial_distance(distance_squared)) {
+      if (desc->reference_radial_rounding && bb_reference_radial_distance(distance_squared)) {
         const int32_t alpha = pixel[3] + (stops[0].color.alpha > stops[desc->stop_count - 1].color.alpha ? 1 : -1);
         pixel[3] = bb_raster_round_u8(alpha);
       }

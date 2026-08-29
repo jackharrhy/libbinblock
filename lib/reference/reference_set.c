@@ -45,7 +45,7 @@ static bb_status bb_reference_render_analytic_alpha_map(
   desc.width = spec->width;
   desc.height = spec->height;
   desc.direction = BB_ALPHA_DIRECTION_IN;
-  desc.easing = BB_EASING_LEGACY;
+  desc.easing = BB_EASING_REFERENCE;
   desc.color = index < 9 ? (bb_rgba8){0, 0, 0, 255} : (bb_rgba8){255, 255, 255, 255};
   if (spec->geometry == 0) {
     desc.metric = BB_ALPHA_METRIC_Y;
@@ -66,14 +66,14 @@ static bb_status bb_reference_render_analytic_alpha_map(
     desc.center_x = 31;
     desc.center_y = 31;
     desc.radius = 32;
-    desc.legacy_radial_rounding = 1;
+    desc.reference_radial_rounding = 1;
   } else if (spec->geometry == 5) {
     desc.metric = BB_ALPHA_METRIC_EUCLIDEAN;
     desc.center_x = 32;
     desc.center_y = 32;
     desc.radius = 32;
     desc.direction = BB_ALPHA_DIRECTION_OUT;
-    desc.legacy_radial_rounding = 1;
+    desc.reference_radial_rounding = 1;
   } else if (spec->geometry == 6) {
     desc.metric = BB_ALPHA_METRIC_CHEBYSHEV;
     desc.center_x = 31;

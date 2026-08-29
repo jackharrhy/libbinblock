@@ -29,7 +29,7 @@ typedef enum bb_mask_mode {
 typedef enum bb_easing {
   BB_EASING_LINEAR = 0,
   BB_EASING_SMOOTHSTEP = 1,
-  BB_EASING_LEGACY = 2
+  BB_EASING_REFERENCE = 2
 } bb_easing;
 
 typedef enum bb_alpha_metric {
@@ -103,7 +103,7 @@ typedef struct bb_alpha_field_desc {
   bb_rgba8 color;
   const uint8_t *levels;
   size_t level_count;
-  uint32_t legacy_radial_rounding;
+  uint32_t reference_radial_rounding;
 } bb_alpha_field_desc;
 
 typedef struct bb_linear_gradient_desc {
@@ -128,7 +128,7 @@ typedef struct bb_elliptical_gradient_desc {
   const bb_gradient_stop *stops;
   size_t stop_count;
   bb_easing easing;
-  uint32_t legacy_radial_rounding;
+  uint32_t reference_radial_rounding;
 } bb_elliptical_gradient_desc;
 
 /* The context must outlive every surface allocated from it. */
