@@ -1,11 +1,11 @@
 {
-  "name": "bingen",
+  "name": "libbinblock",
   "version": "0.1.0",
   "private": true,
-  "description": "Build raster image collections from composable JSON recipes.",
+  "description": "Portable C11 BinScript compiler, raster library, and cross-platform integrations.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jackharrhy/bingen.git"
+    "url": "https://github.com/jackharrhy/libbinblock.git"
   },
   "type": "module",
   "scripts": {

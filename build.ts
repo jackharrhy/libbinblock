@@ -23,7 +23,7 @@ const html = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A live BinScript notebook powered by the portable C/Wasm compiler.">
   <link rel="icon" href="data:,">
-  <title>BinScript · Bingen</title>
+  <title>BinScript · libbinblock</title>
   <style>${styles}</style>
 </head>
 <body>

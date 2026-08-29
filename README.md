@@ -1,10 +1,10 @@
-# Bingen / libbinblock
+# libbinblock
 
-Bingen is now a browser host for `libbinblock`, a portable C11 BinScript
-compiler, immutable semantic graph, lazy artifact planner, backend planner, and
-canonical RGBA8 software renderer. The production notebook uses that library
-through WebAssembly and optionally validates supported previews through WebGL2;
-the native CLI uses the same compiler and rasterizer.
+`libbinblock` is a portable C11 BinScript compiler, immutable semantic graph,
+lazy artifact planner, backend planner, and canonical RGBA8 software renderer.
+The browser notebook uses the library through WebAssembly and optionally
+validates supported previews through WebGL2; the native CLI uses the same
+compiler and rasterizer.
 
 The original TypeScript compiler and recipe executor live under `legacy-ts/` as
 a behavioral oracle only and are not part of the production bundle. See the
