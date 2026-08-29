@@ -53,7 +53,7 @@ cmake \
   -DGODOT_EXECUTABLE=/path/to/godot \
   -DGODOT_EXTENSION="$PWD/.build/godot/libbinblock_godot.dylib" \
   -DPROJECT_ROOT="$PWD" \
-  -P tests/godot_smoke.cmake
+  -P tests/integration/godot_smoke.cmake
 ```
 
 It loads the real GDExtension, imports the two-output BinScript resource, checks

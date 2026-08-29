@@ -111,7 +111,7 @@ The browser preview and ZIP exporter use the same recipe executor for these fami
 - `ordered-results` contains 960 first-class pixel aliases and 12 explicit raster exceptions.
 - Custom permutations are a four-stage analytic recipe containing flat sources, masks, variants, and recipe aliases.
 
-`src/app.ts` contains no family-specific pixel renderers. Unresolved families use raster-backed stages or namespaced compatibility operations.
+The production `apps/browser/app.ts` contains no family-specific pixel renderers. Unresolved families in this historical model use raster-backed stages or namespaced compatibility operations.
 
 Collection ZIPs include the effective family documents under `recipes/`, plus `recipes/bin-block-recipe-v1.schema.json`. The manifest identifies each recipe and render profile. The documents can be inspected and validated independently; compiling raster-backed recipes also requires the corresponding source assets and a raster resolver.
 

@@ -27,8 +27,8 @@ import {
   renderHistoricBlue8,
   resizeLanczos3RGBA,
   rotateRGBA90,
-} from '../legacy-ts/src/legacy.js';
-import type { PixelBuffer, RasterData, ResultAliasMapping } from '../legacy-ts/src/legacy.js';
+} from '../src/legacy.js';
+import type { PixelBuffer, RasterData, ResultAliasMapping } from '../src/legacy.js';
 
 async function loadRgba(file: string): Promise<RasterData> {
   const image = await loadImage(file);

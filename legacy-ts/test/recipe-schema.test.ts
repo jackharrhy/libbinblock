@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseRecipeDocument, recipeJsonSchema, RecipeDocumentSchema, type JsonValue } from '../legacy-ts/src/recipe-schema.js';
+import { parseRecipeDocument, recipeJsonSchema, RecipeDocumentSchema, type JsonValue } from '../src/recipe-schema.js';
 
 function minimalRecipe(overrides: Record<string, JsonValue> = {}): Record<string, JsonValue> {
   return {

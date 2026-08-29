@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compileRecipe } from '../legacy-ts/src/recipe-executor.js';
-import type { JsonValue, RecipeDocument } from '../legacy-ts/src/recipe-schema.js';
+import { compileRecipe } from '../src/recipe-executor.js';
+import type { JsonValue, RecipeDocument } from '../src/recipe-schema.js';
 
 interface ColorFixture {
   [key: string]: JsonValue;

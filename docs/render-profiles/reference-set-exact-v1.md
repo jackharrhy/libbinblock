@@ -510,4 +510,4 @@ byte alias.
 
 The hand-curated smoke set is `tests/fixtures/reference-smoke.json`; the complete
 archive inventory and declared per-file equivalence classes are in
-`reference-manifest.json`.
+`reference-set/reference-manifest.json`.

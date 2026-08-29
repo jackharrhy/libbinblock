@@ -13,13 +13,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": [
-    "build.ts",
-    "bindings/javascript/**/*.ts",
-    "legacy-ts/**/*.ts",
-    "scripts/**/*.ts",
-    "src/**/*.ts",
-    "test/**/*.ts",
-    "web/**/*.ts"
-  ]
+  "include": ["apps/**/*.ts", "bindings/javascript/**/*.ts", "legacy-ts/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"]
 }

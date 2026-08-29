@@ -2,7 +2,7 @@ import * as esbuild from 'esbuild';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const result = await esbuild.build({
-  entryPoints: ['src/app.ts'],
+  entryPoints: ['apps/browser/app.ts'],
   bundle: true,
   format: 'esm',
   target: 'es2022',

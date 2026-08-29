@@ -9,7 +9,7 @@
   },
   "type": "module",
   "scripts": {
-    "build": "npm run build:wasm && tsx build.ts",
+    "build": "npm run build:wasm && tsx scripts/build-browser.ts",
     "build:c": "cmake -S . -B .build/native -G Ninja -DBB_BUILD_TESTS=ON && cmake --build .build/native",
     "build:wasm": "emcmake cmake -S . -B .build/wasm -G Ninja -DBB_BUILD_WASM=ON -DBB_BUILD_CLI=OFF -DBB_BUILD_TESTS=OFF && cmake --build .build/wasm",
     "build:wasm:web": "npm run build:wasm && tsx scripts/build-wasm-web.ts",

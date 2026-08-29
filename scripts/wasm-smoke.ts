@@ -2,7 +2,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { createBinBlockRuntime, type BinBlockWasmFactory } from '../bindings/javascript/binblock.js';
-import { decodeReferencePng } from '../bindings/javascript/reference-assets.js';
+import { decodeReferencePng } from '../apps/browser/reference-assets.js';
 import type { ReferenceManifest } from './reference-manifest.js';
 
 const moduleUrl = pathToFileURL(resolve('.build/wasm/binblock.mjs')).href;
@@ -28,7 +28,7 @@ if (resized.width !== 4 || resized.height !== 4 || resized.pixels[2] !== 255) {
   throw new Error('Wasm parameter recompile did not produce the expected blue preview.');
 }
 
-const manifest = JSON.parse(await readFile('reference-manifest.json', 'utf8')) as ReferenceManifest;
+const manifest = JSON.parse(await readFile('reference-set/reference-manifest.json', 'utf8')) as ReferenceManifest;
 for (const file of manifest.files)
   runtime.registerAssetMetadata({
     logicalId: file.path,

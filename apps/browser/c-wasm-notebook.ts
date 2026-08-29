@@ -8,9 +8,9 @@ import {
   type BinBlockImage,
   type BinBlockParameter,
   type BinBlockRuntime,
-} from '../bindings/javascript/binblock.js';
-import { BinBlockWebGl2Backend } from '../bindings/javascript/webgl2-backend.js';
-import { ReferenceAssetHost } from '../bindings/javascript/reference-assets.js';
+} from '../../bindings/javascript/binblock.js';
+import { BinBlockWebGl2Backend } from '../../bindings/javascript/webgl2-backend.js';
+import { ReferenceAssetHost } from './reference-assets.js';
 
 export const C_WASM_STARTER_SOURCE = `import "binblock/basic"
 
