@@ -12,6 +12,8 @@ set(DEMO_ROOT "${PROJECT_ROOT}/integrations/godot/demo")
 file(MAKE_DIRECTORY "${DEMO_ROOT}/bin")
 get_filename_component(EXTENSION_NAME "${GODOT_EXTENSION}" NAME)
 file(COPY_FILE "${GODOT_EXTENSION}" "${DEMO_ROOT}/bin/${EXTENSION_NAME}" ONLY_IF_DIFFERENT)
+file(MAKE_DIRECTORY "${DEMO_ROOT}/.godot")
+file(WRITE "${DEMO_ROOT}/.godot/extension_list.cfg" "res://binblock.gdextension\n")
 
 execute_process(
   COMMAND "${GODOT_EXECUTABLE}" --headless --path "${DEMO_ROOT}" --verbose
