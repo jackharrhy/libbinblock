@@ -465,8 +465,8 @@ static bb_status test_asset_resolver(
   const bb_asset_request *request,
   bb_resolved_asset *out_asset
 ) {
-  static const bb_string_view root_dependencies[] = {BB_TEST_STRING("child")};
-  static const bb_string_view child_dependencies[] = {BB_TEST_STRING("root")};
+  static const bb_string_view root_dependencies[] = {{"child", sizeof("child") - 1}};
+  static const bb_string_view child_dependencies[] = {{"root", sizeof("root") - 1}};
   static bb_string_view reused_dependencies[2];
   resolver_test_state *state = user;
   state->asset_calls += 1;

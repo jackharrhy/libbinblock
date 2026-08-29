@@ -185,7 +185,7 @@ static int test_collection_combinators_and_owned_values(void) {
 typedef struct artifact_map_state {
   bb_image_node images[19];
   char keys[304][16];
-  char paths[304][24];
+  char paths[304][32];
   size_t calls;
 } artifact_map_state;
 
