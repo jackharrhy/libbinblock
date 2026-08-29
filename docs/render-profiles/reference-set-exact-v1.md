@@ -228,7 +228,7 @@ Inputs to easing are clamped to `[0, 1]` before evaluation.
 ```text
 linear(t)     = t
 smoothstep(t) = t*t*(3 - 2*t)
-legacy(t)     = 0.5*t + 0.5*(3*t*t - 2*t*t*t)
+reference(t)     = 0.5*t + 0.5*(3*t*t - 2*t*t*t)
 ```
 
 The compatibility-only radial correction set is:
@@ -264,7 +264,7 @@ t = easing(clamp(distance / radius, 0, 1))
 alpha = R8(255 * (direction == in ? 1 - t : t))
 ```
 
-If `legacyRadialRounding` is enabled for a Euclidean field and `dx*dx +
+If `referenceRadialRounding` is enabled for a Euclidean field and `dx*dx +
 dy*dy` is in the correction set, add `+1` for direction `in` or `-1` for
 direction `out`, then clamp on storage.
 
@@ -365,7 +365,7 @@ ry = -dx*s + dy*c
 distance = clamp(hypot(rx/radiusX, ry/radiusY), 0, 1)
 ```
 
-The distance is used as the stop position. If `legacyRadialRounding` is enabled,
+The distance is used as the stop position. If `referenceRadialRounding` is enabled,
 the unrotated squared distance `dx*dx + dy*dy` is checked against the correction
 set after interpolation. Add `+1` to alpha when the first stop alpha is greater
 than the last stop alpha; otherwise add `-1`, then clamp on storage.
@@ -404,16 +404,16 @@ The map tuple is `(width, height, offsetX, offsetY, geometry, RGB)`:
 Geometry formulas use local integer coordinates:
 
 ```text
-axis(p) = R8(255 * (1 - legacy(p / 64)))
+axis(p) = R8(255 * (1 - reference(p / 64)))
 
 0: axis(y)
 1: axis(63 - y)
 2: axis(x)
 3: axis(63 - x)
-4: R8(255 * (1 - legacy(sqrt((x-31)^2 + (y-31)^2) / 32)))
-5: R8(255 *      legacy(sqrt((x-32)^2 + (y-32)^2) / 32))
-6: R8(255 * (1 - legacy(max(abs(x-31), abs(y-31)) / 32)))
-7: R8(255 *      legacy(max(abs(x-32), abs(y-32)) / 32))
+4: R8(255 * (1 - reference(sqrt((x-31)^2 + (y-31)^2) / 32)))
+5: R8(255 *      reference(sqrt((x-32)^2 + (y-32)^2) / 32))
+6: R8(255 * (1 - reference(max(abs(x-31), abs(y-31)) / 32)))
+7: R8(255 *      reference(max(abs(x-32), abs(y-32)) / 32))
 8: [53,101,146,179,206,255][min(5, min(x,y,61-x,61-y))]
 ```
 

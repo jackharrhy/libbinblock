@@ -118,7 +118,7 @@ static int bb_graph_node_equal(const bb_graph_node *left, const bb_graph_node *r
              left->data.alpha_field.desc.easing == right->data.alpha_field.desc.easing &&
              bb_color_equal(left->data.alpha_field.desc.color, right->data.alpha_field.desc.color) &&
              left->data.alpha_field.desc.level_count == right->data.alpha_field.desc.level_count &&
-             !!left->data.alpha_field.desc.legacy_radial_rounding == !!right->data.alpha_field.desc.legacy_radial_rounding &&
+             !!left->data.alpha_field.desc.reference_radial_rounding == !!right->data.alpha_field.desc.reference_radial_rounding &&
              (left->data.alpha_field.level_bytes == 0 ||
               memcmp(left->data.alpha_field.levels, right->data.alpha_field.levels, left->data.alpha_field.level_bytes) == 0);
     case BB_IMAGE_NODE_PRESET_GRADIENT:
@@ -146,7 +146,7 @@ static int bb_graph_node_equal(const bb_graph_node *left, const bb_graph_node *r
           !bb_double_equal(left->data.ellipse.desc.radius_y, right->data.ellipse.desc.radius_y) ||
           !bb_double_equal(left->data.ellipse.desc.rotation_radians, right->data.ellipse.desc.rotation_radians) ||
           left->data.ellipse.desc.easing != right->data.ellipse.desc.easing ||
-          !!left->data.ellipse.desc.legacy_radial_rounding != !!right->data.ellipse.desc.legacy_radial_rounding ||
+          !!left->data.ellipse.desc.reference_radial_rounding != !!right->data.ellipse.desc.reference_radial_rounding ||
           left->data.ellipse.desc.stop_count != right->data.ellipse.desc.stop_count) return 0;
       for (index = 0; index < left->data.ellipse.desc.stop_count; index += 1)
         if (!bb_gradient_stop_equal(&left->data.ellipse.stops[index], &right->data.ellipse.stops[index])) return 0;
@@ -563,7 +563,7 @@ static bb_status bb_graph_copy_stops(
     bb_gradient_stop value = copy[index];
     size_t cursor = index;
     if (!isfinite(value.offset) || value.offset < 0 || value.offset > 1 ||
-        (value.has_easing && (value.easing < BB_EASING_LINEAR || value.easing > BB_EASING_LEGACY))) {
+        (value.has_easing && (value.easing < BB_EASING_LINEAR || value.easing > BB_EASING_REFERENCE))) {
       bb_context_deallocate(graph->context, copy, bytes, _Alignof(bb_gradient_stop));
       return BB_STATUS_INVALID_ARGUMENT;
     }
@@ -669,7 +669,7 @@ bb_status bb_image_graph_add_alpha_field(
       desc->metric < BB_ALPHA_METRIC_X || desc->metric > BB_ALPHA_METRIC_BORDER || !isfinite(desc->center_x) ||
       !isfinite(desc->center_y) || !isfinite(desc->radius) || desc->radius == 0.0 ||
       (desc->direction != BB_ALPHA_DIRECTION_OUT && desc->direction != BB_ALPHA_DIRECTION_IN) ||
-      desc->easing < BB_EASING_LINEAR || desc->easing > BB_EASING_LEGACY ||
+      desc->easing < BB_EASING_LINEAR || desc->easing > BB_EASING_REFERENCE ||
       (desc->level_count != 0 && desc->levels == NULL)) return BB_STATUS_INVALID_ARGUMENT;
   memset(&candidate, 0, sizeof(candidate));
   candidate.kind = BB_IMAGE_NODE_ALPHA_FIELD;
@@ -678,7 +678,7 @@ bb_status bb_image_graph_add_alpha_field(
   candidate.data.alpha_field.desc.center_x = bb_canonical_double(desc->center_x);
   candidate.data.alpha_field.desc.center_y = bb_canonical_double(desc->center_y);
   candidate.data.alpha_field.desc.radius = bb_canonical_double(desc->radius);
-  candidate.data.alpha_field.desc.legacy_radial_rounding = !!desc->legacy_radial_rounding;
+  candidate.data.alpha_field.desc.reference_radial_rounding = !!desc->reference_radial_rounding;
   candidate.data.alpha_field.level_bytes = desc->level_count;
   candidate.data.alpha_field.desc.levels = NULL;
   if (desc->level_count != 0) {
@@ -703,7 +703,7 @@ bb_status bb_image_graph_add_alpha_field(
   bb_hash_color(&hash, desc->color);
   bb_hash_u64(&hash, desc->level_count);
   for (index = 0; index < desc->level_count; index += 1) bb_hash_byte(&hash, desc->levels[index]);
-  bb_hash_u32(&hash, !!desc->legacy_radial_rounding);
+  bb_hash_u32(&hash, !!desc->reference_radial_rounding);
   candidate.hash = bb_hash_finish(hash);
   return bb_graph_publish_node(graph, &candidate, out_node);
 }
@@ -750,7 +750,7 @@ bb_status bb_image_graph_add_linear_gradient(
   bb_status status;
   if (out_node != NULL) *out_node = BB_IMAGE_NODE_NONE;
   if (graph == NULL || desc == NULL || desc->width == 0 || desc->height == 0 || !isfinite(desc->angle_degrees) ||
-      desc->easing < BB_EASING_LINEAR || desc->easing > BB_EASING_LEGACY ||
+      desc->easing < BB_EASING_LINEAR || desc->easing > BB_EASING_REFERENCE ||
       (desc->has_explicit_extent && (!isfinite(desc->extent) || desc->extent <= 0.0))) return BB_STATUS_INVALID_ARGUMENT;
   memset(&candidate, 0, sizeof(candidate));
   candidate.kind = BB_IMAGE_NODE_LINEAR_GRADIENT;
@@ -791,7 +791,7 @@ bb_status bb_image_graph_add_elliptical_gradient(
   if (graph == NULL || desc == NULL || desc->width == 0 || desc->height == 0 || !isfinite(desc->center_x) ||
       !isfinite(desc->center_y) || !isfinite(desc->radius_x) || !isfinite(desc->radius_y) ||
       !isfinite(desc->rotation_radians) || !(desc->radius_x > 0.0) || !(desc->radius_y > 0.0) ||
-      desc->easing < BB_EASING_LINEAR || desc->easing > BB_EASING_LEGACY) return BB_STATUS_INVALID_ARGUMENT;
+      desc->easing < BB_EASING_LINEAR || desc->easing > BB_EASING_REFERENCE) return BB_STATUS_INVALID_ARGUMENT;
   memset(&candidate, 0, sizeof(candidate));
   candidate.kind = BB_IMAGE_NODE_ELLIPTICAL_GRADIENT;
   candidate.depth = 1;
@@ -809,7 +809,7 @@ bb_status bb_image_graph_add_elliptical_gradient(
   candidate.data.ellipse.desc.radius_x = bb_canonical_double(desc->radius_x);
   candidate.data.ellipse.desc.radius_y = bb_canonical_double(desc->radius_y);
   candidate.data.ellipse.desc.rotation_radians = bb_canonical_double(desc->rotation_radians);
-  candidate.data.ellipse.desc.legacy_radial_rounding = !!desc->legacy_radial_rounding;
+  candidate.data.ellipse.desc.reference_radial_rounding = !!desc->reference_radial_rounding;
   candidate.data.ellipse.desc.stops = candidate.data.ellipse.stops;
   bb_hash_u32(&hash, desc->width);
   bb_hash_u32(&hash, desc->height);
@@ -819,7 +819,7 @@ bb_status bb_image_graph_add_elliptical_gradient(
   bb_hash_double(&hash, candidate.data.ellipse.desc.radius_y);
   bb_hash_double(&hash, candidate.data.ellipse.desc.rotation_radians);
   bb_hash_u32(&hash, desc->easing);
-  bb_hash_u32(&hash, !!desc->legacy_radial_rounding);
+  bb_hash_u32(&hash, !!desc->reference_radial_rounding);
   bb_hash_stops(&hash, candidate.data.ellipse.stops, desc->stop_count);
   candidate.hash = bb_hash_finish(hash);
   return bb_graph_publish_node(graph, &candidate, out_node);

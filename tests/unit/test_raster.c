@@ -263,7 +263,7 @@ static int test_alpha_fields_presets_and_gradients(void) {
     {1.0, {0, 0, 0, 0}, BB_EASING_LINEAR, 0},
   };
   bb_linear_gradient_desc linear = {3, 1, 90.0, 0.0, 0, stops, 2, BB_EASING_LINEAR};
-  bb_elliptical_gradient_desc ellipse = {5, 5, 2.0, 2.0, 2.0, 1.0, 0.0, ellipse_stops, 3, BB_EASING_LEGACY, 0};
+  bb_elliptical_gradient_desc ellipse = {5, 5, 2.0, 2.0, 2.0, 1.0, 0.0, ellipse_stops, 3, BB_EASING_REFERENCE, 0};
   bb_context *context = NULL;
   bb_surface *output = NULL;
   bb_const_image_view view;

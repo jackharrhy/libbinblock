@@ -211,7 +211,7 @@ static int test_fluent_image_operations_lower_to_canonical_graph(void) {
 static int test_radial_vector_color_transforms_and_unary_collection_lifting(void) {
   static const char source[] =
     "import \"binblock/basic\"\n"
-    "field := rg(#000000a3, #00000000, center: [1.5, 1.5], radius: 2, width: 4, height: 4, easing: \"legacy\", legacy-rounding: true)\n"
+    "field := rg(#000000a3, #00000000, center: [1.5, 1.5], radius: 2, width: 4, height: 4, easing: \"reference\", reference-rounding: true)\n"
     "field.rgb(#ffffff).invert-alpha().tint(#00ff00).remap(#00ff00, #000000, #ff0000, #0000ff).shift-rgb(#ff0000, #00ffff)\n"
     "items := palette(red: #ff0000, blue: #0000ff).map(fill).size(2).opacity(50%).rotate(1).crop(0, 0, 1, 1).canvas(2, 2, 1, 1).rgb(#ffffff).invert-alpha()\n"
     "items\n";
