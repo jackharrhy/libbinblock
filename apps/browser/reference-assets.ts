@@ -1,4 +1,4 @@
-import type { BinBlockImage, BinBlockRuntime } from './binblock.js';
+import type { BinBlockImage, BinBlockRuntime } from '../../bindings/javascript/binblock.js';
 
 interface ReferenceManifestFile {
   path: string;
@@ -137,7 +137,7 @@ export class ReferenceAssetHost {
 
   static async load(runtime: BinBlockRuntime, root = new URL('../', document.baseURI)): Promise<ReferenceAssetHost> {
     const [manifestResponse, sourceResponse] = await Promise.all([
-      fetch(new URL('reference-manifest.json', root)),
+      fetch(new URL('reference-set/reference-manifest.json', root)),
       fetch(new URL('reference-set/reference-set.binscript', root)),
     ]);
     if (!manifestResponse.ok || !sourceResponse.ok) throw new Error('The reference program metadata could not be loaded.');

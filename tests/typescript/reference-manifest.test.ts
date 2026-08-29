@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { decodeReferencePng, generateReferenceManifest, serializeReferenceManifest } from '../scripts/reference-manifest.js';
+import { decodeReferencePng, generateReferenceManifest, serializeReferenceManifest } from '../../scripts/reference-manifest.js';
 
 test('reference manifest is deterministic and locked to the complete archive', async () => {
   const first = serializeReferenceManifest(await generateReferenceManifest());
   const second = serializeReferenceManifest(await generateReferenceManifest());
   assert.equal(second, first);
-  assert.equal(await readFile('reference-manifest.json', 'utf8'), first);
+  assert.equal(await readFile('reference-set/reference-manifest.json', 'utf8'), first);
 
   const manifest = JSON.parse(first) as Awaited<ReturnType<typeof generateReferenceManifest>>;
   assert.equal(manifest.fileCount, 4312);

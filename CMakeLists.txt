@@ -76,7 +76,7 @@ if(BB_BUILD_RASTER)
     lib/raster/composite.c
     lib/raster/surface.c
     lib/raster/transform.c
-    modules/reference-set/reference_alpha_maps.c
+    lib/reference/reference_set.c
   )
   target_include_directories(binblock PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib/raster)
   target_compile_definitions(binblock PUBLIC BB_HAS_RASTER=1)
@@ -245,7 +245,7 @@ if(BB_BUILD_TESTS)
         -DBINBLOCK_CLI=$<TARGET_FILE:binblock-cli>
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/tests/language/golden-starter.binscript
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/tests/language/golden-starter.graph.txt
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli_golden.cmake
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/cli_golden.cmake
     )
     add_test(
       NAME binblock-cli-compare-reference-flat-colors

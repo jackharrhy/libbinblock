@@ -30,7 +30,7 @@ try {
   const [firstBytes, secondBytes, referenceBytes] = await Promise.all([
     readFile(first),
     readFile(second),
-    readFile(join(repository, 'reference-manifest.json')),
+    readFile(join(repository, 'reference-set/reference-manifest.json')),
   ]);
   if (!firstBytes.equals(secondBytes)) throw new Error('Native inventory output is not byte-deterministic.');
   const native = JSON.parse(firstBytes.toString('utf8')) as NativeInventory;

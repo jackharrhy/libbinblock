@@ -378,12 +378,12 @@ export function serializeReferenceManifest(manifest: ReferenceManifest): string 
 
 async function main(): Promise<void> {
   const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-  const outputPath = join(repositoryRoot, 'reference-manifest.json');
+  const outputPath = join(repositoryRoot, 'reference-set/reference-manifest.json');
   const serialized = serializeReferenceManifest(await generateReferenceManifest(repositoryRoot));
   if (process.argv.includes('--check')) {
     const current = await readFile(outputPath, 'utf8').catch(() => '');
-    if (current !== serialized) throw new Error('reference-manifest.json is stale; run npm run inventory.');
-    console.log('reference-manifest.json matches all 4,312 reference PNGs.');
+    if (current !== serialized) throw new Error('reference-set/reference-manifest.json is stale; run npm run inventory.');
+    console.log('reference-set/reference-manifest.json matches all 4,312 reference PNGs.');
     return;
   }
   await writeFile(outputPath, serialized);

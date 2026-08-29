@@ -1,7 +1,7 @@
 # Reference manifest
 
-`reference-manifest.json` is the locked inventory for all 4,312 PNG files in
-`reference-set/`. Regenerate it with `npm run inventory` and verify it without
+`reference-set/reference-manifest.json` is the locked inventory for all 4,312
+PNG files in `reference-set/`. Regenerate it with `npm run inventory` and verify it without
 writing files with `npm run inventory:check`.
 
 The generator uses a purpose-built decoder for the archive's non-interlaced

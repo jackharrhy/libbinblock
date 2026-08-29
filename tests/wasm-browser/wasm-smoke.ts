@@ -1,6 +1,6 @@
 import createBinBlockModule from './dist-wasm/binblock.mjs';
-import { createBinBlockRuntime } from '../bindings/javascript/binblock.js';
-import { BinBlockWebGl2Backend } from '../bindings/javascript/webgl2-backend.js';
+import { createBinBlockRuntime } from '../../bindings/javascript/binblock.js';
+import { BinBlockWebGl2Backend } from '../../bindings/javascript/webgl2-backend.js';
 
 const source = `import "binblock/basic"
 size := 64

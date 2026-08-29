@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCanvas, loadImage } from 'canvas';
-import { BinScriptError, compileBinScript } from '../legacy-ts/src/binscript-language.js';
-import { errorSummary, recipeProjectionTargets, STARTER_RECIPE, STARTER_SOURCE } from '../legacy-ts/src/binscript-notebook.js';
-import { DEFAULT_PALETTE } from '../legacy-ts/src/core.js';
-import { compileRecipe } from '../legacy-ts/src/recipe-executor.js';
+import { BinScriptError, compileBinScript } from '../src/binscript-language.js';
+import { errorSummary, recipeProjectionTargets, STARTER_RECIPE, STARTER_SOURCE } from '../src/binscript-notebook.js';
+import { DEFAULT_PALETTE } from '../src/core.js';
+import { compileRecipe } from '../src/recipe-executor.js';
 
 async function fixturePixels(path: string): Promise<{ width: number; height: number; pixels: Uint8ClampedArray }> {
   const image = await loadImage(path);

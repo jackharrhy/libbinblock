@@ -16,7 +16,7 @@ The important gates and their evidence are:
 | Backends             | Capability model, graph partition planner, bounded CPU fallback, WebGL2 shader lowering and context-loss fallback                                                         |
 | Godot                | Godot 4.5+ GDExtension/runtime gate, live `BinProgram` parameters, native-sized harsh-palette editor gallery, and Binblock-powered `TileMapLayer`/`CharacterBody2D` world |
 | Wii                  | devkitPPC/libogc2 build, endian-stable BBM host, bounded enumeration, CPU bake, GX RGBA8 tiling/upload, and Dolphin-rendered native-sized harsh-palette gallery           |
-| Prototype retirement | Old TypeScript compiler/executor moved to `legacy-ts/`; production `src/` contains only the Wasm notebook host                                                            |
+| Prototype retirement | Old TypeScript compiler/executor moved to `legacy-ts/`; production `apps/browser/` contains only the Wasm notebook host                                                   |
 
 The audited release matrix includes native debug and release suites, ASan/UBSan,
 six libFuzzer targets, a real Linux ELF32 build, Emscripten and production browser
