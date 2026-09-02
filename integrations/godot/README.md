@@ -3,11 +3,11 @@
 `binblock-godot` is an opt-in Godot 4 GDExtension consumer of the public C API.
 It registers:
 
-- `BinProgram`, an importable `.binscript`/`.bbm` resource with structured
+- `BinProgram`, an importable `.binscript` resource with structured
   diagnostics, parameter properties, output metadata, and CPU-baked images or
   textures;
 - `BinTexture`, a resource selecting one output and item from a `BinProgram`;
-- a resource loader for source and versioned precompiled modules.
+- a resource loader for BinScript source.
 
 Build against an official `godot-cpp` checkout compatible with Godot 4.3 or
 newer:

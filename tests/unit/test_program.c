@@ -1,7 +1,6 @@
 #include "test_support.h"
 
 #include <binblock/program.h>
-#include <binblock/module.h>
 #include <binblock/reference_set.h>
 
 #include <stdint.h>
@@ -94,6 +93,55 @@ static int test_starter_program_compiles_lazily_and_renders_exactly(void) {
   BB_TEST_ASSERT(bb_program_render_output(program, 0, 2, &actual) == BB_STATUS_NOT_FOUND);
   BB_TEST_ASSERT(actual == NULL);
   bb_program_destroy(program);
+  bb_context_destroy(context);
+  return 1;
+}
+
+static int test_artifact_product_maps_source_over_lazily(void) {
+  static const char source[] =
+    "import \"binblock/basic\"\n"
+    "bases := palette(blue: #0000ff).map(fill).size(2)\n"
+    "layers := collect([artifact(\"shade\", fill(#00000080).size(2))])\n"
+    "product(bases, layers).map(over-pair)\n";
+  bb_context *context = NULL;
+  bb_source_id source_id = BB_SOURCE_ID_NONE;
+  bb_syntax_tree *syntax = NULL;
+  bb_program *program = NULL;
+  bb_program_output_info output_info;
+  bb_artifact_value artifact;
+  bb_surface *actual = NULL;
+  bb_surface *base = NULL;
+  bb_surface *layer = NULL;
+  bb_surface *expected = NULL;
+  BB_TEST_ASSERT(bb_context_create(NULL, &context) == BB_STATUS_OK);
+  BB_TEST_ASSERT(
+    bb_context_add_source(
+      context,
+      BB_TEST_STRING("over-product.bb"),
+      (bb_bytes){(const uint8_t *)source, sizeof(source) - 1},
+      &source_id
+    ) == BB_STATUS_OK
+  );
+  BB_TEST_ASSERT(bb_syntax_parse(context, source_id, &syntax) == BB_STATUS_OK);
+  BB_TEST_ASSERT(bb_program_compile(context, syntax, &program) == BB_STATUS_OK);
+  BB_TEST_ASSERT(bb_program_diagnostic_count(program) == 0);
+  BB_TEST_ASSERT(bb_program_output_count(program) == 1);
+  BB_TEST_ASSERT(bb_program_output(program, 0, &output_info) == BB_STATUS_OK);
+  BB_TEST_ASSERT(output_info.item_type == BB_SEMANTIC_ARTIFACT && output_info.cardinality == 1);
+  BB_TEST_ASSERT(bb_program_output_artifact(program, 0, 0, &artifact) == BB_STATUS_OK);
+  BB_TEST_ASSERT(bb_test_string_equal(artifact.key, "blue--shade"));
+  BB_TEST_ASSERT(bb_test_string_equal(artifact.path, "blue--shade.png"));
+  BB_TEST_ASSERT(bb_program_render_output(program, 0, 0, &actual) == BB_STATUS_OK);
+  BB_TEST_ASSERT(bb_raster_fill(context, 2, 2, (bb_rgba8){0, 0, 255, 255}, &base) == BB_STATUS_OK);
+  BB_TEST_ASSERT(bb_raster_fill(context, 2, 2, (bb_rgba8){0, 0, 0, 128}, &layer) == BB_STATUS_OK);
+  BB_TEST_ASSERT(bb_raster_source_over(context, base, layer, 0, 0, 1.0, &expected) == BB_STATUS_OK);
+  BB_TEST_ASSERT(program_surfaces_equal(actual, expected));
+  bb_surface_destroy(expected);
+  bb_surface_destroy(layer);
+  bb_surface_destroy(base);
+  bb_surface_destroy(actual);
+  bb_program_destroy(program);
+  bb_syntax_tree_destroy(syntax);
   bb_context_destroy(context);
   return 1;
 }
@@ -404,8 +452,6 @@ typedef struct resolver_test_state {
   size_t encoded_calls;
   int cycle_mode;
   int reuse_dependency_storage_mode;
-  uint8_t precompiled[64];
-  size_t precompiled_length;
 } resolver_test_state;
 
 static int resolver_view_is(bb_string_view value, const char *expected) {
@@ -424,37 +470,27 @@ static bb_status test_module_resolver(
   state->module_calls += 1;
   memset(out_module, 0, sizeof(*out_module));
   if (state->cycle_mode && resolver_view_is(request->specifier, "A")) {
-    out_module->kind = BB_RESOLVED_MODULE_SOURCE;
     out_module->identity = BB_TEST_STRING("module:A:v1");
     out_module->source_name = BB_TEST_STRING("A.bb");
     out_module->source = (bb_bytes){module_a, sizeof(module_a) - 1};
     return BB_STATUS_OK;
   }
   if (state->cycle_mode && resolver_view_is(request->specifier, "B")) {
-    out_module->kind = BB_RESOLVED_MODULE_SOURCE;
     out_module->identity = BB_TEST_STRING("module:B:v1");
     out_module->source_name = BB_TEST_STRING("B.bb");
     out_module->source = (bb_bytes){module_b, sizeof(module_b) - 1};
     return BB_STATUS_OK;
   }
   if (resolver_view_is(request->specifier, "host/theme")) {
-    out_module->kind = BB_RESOLVED_MODULE_SOURCE;
     out_module->identity = BB_TEST_STRING("sha256:theme-v1");
     out_module->source_name = BB_TEST_STRING("theme.bb");
     out_module->source = (bb_bytes){theme_source, sizeof(theme_source) - 1};
     return BB_STATUS_OK;
   }
   if (resolver_view_is(request->specifier, "host/shared")) {
-    if (state->precompiled_length == 0 &&
-        bb_precompiled_module_write(
-          (bb_bytes){NULL, 0},
-          state->precompiled,
-          sizeof(state->precompiled),
-          &state->precompiled_length
-        ) != BB_STATUS_OK) return BB_STATUS_INTERNAL_ERROR;
-    out_module->kind = BB_RESOLVED_MODULE_PRECOMPILED;
     out_module->identity = BB_TEST_STRING("sha256:shared-v1");
-    out_module->precompiled = (bb_bytes){state->precompiled, state->precompiled_length};
+    out_module->source_name = BB_TEST_STRING("shared.bb");
+    out_module->source = (bb_bytes){NULL, 0};
     return BB_STATUS_OK;
   }
   return BB_STATUS_NOT_FOUND;
@@ -731,6 +767,7 @@ static int test_semantic_compile_allocation_failure_sweep(void) {
 
 const bb_test_case bb_program_tests[] = {
   {"starter program compiles lazily and renders exactly", test_starter_program_compiles_lazily_and_renders_exactly},
+  {"artifact product maps source-over lazily", test_artifact_product_maps_source_over_lazily},
   {"reference module lowers analytic alpha map", test_reference_module_lowers_analytic_alpha_map_with_artifact_path},
   {"fluent image operations lower to canonical graph", test_fluent_image_operations_lower_to_canonical_graph},
   {"radial vectors, color transforms, and unary lifting", test_radial_vector_color_transforms_and_unary_collection_lifting},

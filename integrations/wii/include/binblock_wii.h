@@ -1,8 +1,6 @@
 #ifndef BINBLOCK_WII_H
 #define BINBLOCK_WII_H
 
-#include <binblock/backend.h>
-#include <binblock/module.h>
 #include <binblock/program.h>
 
 #ifdef __cplusplus
@@ -40,12 +38,12 @@ bb_status bb_wii_rgba8_texture_encode(
   bb_wii_texture_desc *out_desc
 );
 
-/* Loads a versioned, endian-stable BBM envelope without filesystem access.
+/* Loads UTF-8 BinScript without filesystem access.
  * Resolver callbacks and their user pointer in options must outlive the Wii
  * program when imported modules or assets are used during later rendering. */
-bb_status bb_wii_program_load(
+bb_status bb_wii_program_load_source(
   const bb_context_desc *context_desc,
-  bb_bytes precompiled_module,
+  bb_bytes source,
   const bb_compile_options *options,
   bb_wii_program **out_program
 );

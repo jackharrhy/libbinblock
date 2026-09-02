@@ -1,7 +1,6 @@
 add_executable(binblock-tests
   ../bindings/wasm/wasm_api.c
   ../integrations/wii/binblock_wii.c
-  unit/test_backend.c
   unit/test_collection.c
   unit/test_context.c
   unit/test_foundation.c
@@ -10,6 +9,7 @@ add_executable(binblock-tests
   unit/test_support.c
   unit/test_syntax.c
   unit/test_wasm.c
+  unit/test_wii.c
 )
 
 if(BB_BUILD_RASTER)

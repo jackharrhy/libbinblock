@@ -72,11 +72,9 @@ void bb_limits_init(bb_limits *limits) {
   }
   limits->max_total_allocation_bytes = 256u * 1024u * 1024u;
   limits->max_source_bytes = 16u * 1024u * 1024u;
-  limits->max_arena_bytes = 64u * 1024u * 1024u;
   limits->max_sources = UINT32_C(1024);
   limits->max_diagnostics = UINT32_C(256);
   limits->max_related_spans = UINT32_C(32);
-  limits->max_interned_strings = UINT32_C(65536);
   limits->max_provenance_records = UINT32_C(1000000);
   limits->max_syntax_tokens = UINT32_C(1000000);
   limits->max_syntax_nodes = UINT32_C(1000000);

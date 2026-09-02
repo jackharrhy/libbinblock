@@ -60,10 +60,8 @@ typedef enum bb_log_level {
 typedef void (*bb_log_fn)(void *user, bb_log_level level, bb_string_view message);
 
 typedef uint32_t bb_source_id;
-typedef uint32_t bb_symbol;
 
 #define BB_SOURCE_ID_NONE ((bb_source_id)0)
-#define BB_SYMBOL_NONE ((bb_symbol)0)
 
 typedef struct bb_span {
   bb_source_id source_id;
@@ -102,11 +100,9 @@ typedef struct bb_limits {
   /* Zero disables the corresponding resource rather than meaning unlimited. */
   size_t max_total_allocation_bytes;
   size_t max_source_bytes;
-  size_t max_arena_bytes;
   uint32_t max_sources;
   uint32_t max_diagnostics;
   uint32_t max_related_spans;
-  uint32_t max_interned_strings;
   uint32_t max_provenance_records;
   uint32_t max_syntax_tokens;
   uint32_t max_syntax_nodes;

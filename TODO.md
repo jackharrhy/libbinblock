@@ -15,14 +15,14 @@ Remaining work is product depth and release engineering:
   around the existing resource loader and Inspector properties.
 - Add a WebGPU lowering adapter and broaden accelerated coverage while retaining
   explicit per-operation tolerances and CPU fallback.
-- Evolve BBM beyond the version-1 endian-stable validated-source envelope into a
-  compact semantic graph encoding only after that wire format is deliberately
-  versioned.
+- Add a compact deployment encoding for graph nodes, lazy sequences, strings,
+  and outputs. This is the prerequisite for a Wii runtime build that omits the
+  BinScript frontend.
 - Recover more historic analytic formulas, identify and pin both font pipelines,
   and replace raster-backed compatibility assets only when their per-file gates
   pass.
 - Grow persistent fuzz corpora, longer scheduled fuzz runs, and performance
-  regression thresholds around the existing six libFuzzer targets and cold/warm
+  regression thresholds around the existing five libFuzzer targets and cold/warm
   benchmark suite.
 - Add richer package outputs such as texture atlases, engine-native imports, and
   additional original-byte-preserving container formats.

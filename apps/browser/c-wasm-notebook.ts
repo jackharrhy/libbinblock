@@ -1,16 +1,19 @@
 import { minimalSetup } from 'codemirror';
 import { setDiagnostics, type Diagnostic } from '@codemirror/lint';
 import { EditorView } from '@codemirror/view';
-import createBinBlockModule from './binblock.mjs';
 import {
   createBinBlockRuntime,
   type BinBlockDiagnostic,
   type BinBlockImage,
   type BinBlockParameter,
   type BinBlockRuntime,
+  type BinBlockWasmFactory,
 } from '../../bindings/javascript/binblock.js';
 import { BinBlockWebGl2Backend } from '../../bindings/javascript/webgl2-backend.js';
-import { ReferenceAssetHost } from './reference-assets.js';
+import { binScriptEditorExtensions } from './binscript-language.js';
+import { GENERATED_SET_SOURCE } from './generated-set.js';
+
+export const BINBLOCK_NOTEBOOK_STORAGE_KEY = 'binblock:notebook-source:v2';
 
 export const C_WASM_STARTER_SOURCE = `import "binblock/basic"
 
@@ -32,18 +35,19 @@ fade := lg(180deg, white, transparent-white).size(size)
 blocks.mask(fade)
 `;
 
-export interface CWasNotebookOptions {
+export interface CWasmNotebookOptions {
   parent: HTMLElement;
   preview: HTMLElement;
   status: HTMLElement;
   parameters: HTMLElement;
   initialSource?: string;
-  referenceButton?: HTMLButtonElement;
+  generatedSetButton?: HTMLButtonElement;
+  renderAllButton?: HTMLButtonElement;
   exportButton?: HTMLButtonElement;
   previewStart?: HTMLInputElement;
 }
 
-export interface CWasNotebook {
+export interface CWasmNotebook {
   view: EditorView;
   runtime: BinBlockRuntime;
   dispose(): void;
@@ -104,61 +108,129 @@ function parameterControl(runtime: BinBlockRuntime, parameter: BinBlockParameter
   return label;
 }
 
-export async function createCWasNotebook({
+export async function createCWasmNotebook({
   parent,
   preview,
   status,
   parameters,
   initialSource = C_WASM_STARTER_SOURCE,
-  referenceButton,
+  generatedSetButton,
+  renderAllButton,
   exportButton,
   previewStart,
-}: CWasNotebookOptions): Promise<CWasNotebook> {
+}: CWasmNotebookOptions): Promise<CWasmNotebook> {
+  const moduleUrl = new URL('/binblock.mjs', window.location.href).href;
+  const { default: createBinBlockModule } = (await import(/* @vite-ignore */ moduleUrl)) as {
+    default: BinBlockWasmFactory;
+  };
   const runtime = await createBinBlockRuntime(createBinBlockModule);
   const webgl = new BinBlockWebGl2Backend();
-  let referenceAssets: ReferenceAssetHost | undefined;
+  const events = new AbortController();
   let timer: number | undefined;
   let version = 0;
+  const sampleSize = 8;
+  const batchSize = 24;
+  const renderAllLimit = 10_000n;
 
-  const renderCompiledOutputs = async (runVersion: number): Promise<void> => {
-    const fragment = document.createDocumentFragment();
+  const frame = (): Promise<void> => new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+
+  const updateRenderAllButton = (total: bigint, expandable: boolean, busy = false): void => {
+    if (!renderAllButton) return;
+    renderAllButton.disabled = busy || !expandable || total > renderAllLimit;
+    renderAllButton.textContent = busy ? 'Rendering...' : 'Render all';
+    if (total > renderAllLimit)
+      renderAllButton.title = `The editor can render all collections up to ${renderAllLimit.toLocaleString()} items.`;
+    else renderAllButton.removeAttribute('title');
+  };
+
+  const renderCompiledOutputs = async (runVersion: number, renderAll = false): Promise<void> => {
+    const outputs = runtime.outputs();
+    const total = outputs.reduce((sum, output) => sum + output.cardinality, 0n);
+    const expandable = outputs.some((output) => output.cardinality > BigInt(sampleSize));
+    const startedAt = performance.now();
     let rendered = 0;
+    let gpuChecked = 0;
     let gpuValidated = 0;
     let gpuMaxError = 0;
-    for (const output of runtime.outputs()) {
-      const requestedStart = BigInt(Math.max(0, Math.trunc(Number(previewStart?.value ?? 0) || 0)));
+    const sampleFragment = document.createDocumentFragment();
+    updateRenderAllButton(total, expandable, renderAll);
+    if (renderAll) {
+      previewStart?.setAttribute('value', '0');
+      if (previewStart) previewStart.value = '0';
+      preview.replaceChildren();
+    }
+
+    for (const output of outputs) {
+      const requestedStart = renderAll ? 0n : BigInt(Math.max(0, Math.trunc(Number(previewStart?.value ?? 0) || 0)));
       const start = requestedStart < output.cardinality ? requestedStart : output.cardinality;
       const remaining = output.cardinality - start;
-      const count = Number(remaining < 8n ? remaining : 8n);
-      const artifacts = runtime.artifacts(output.index, start, count);
-      for (let index = 0; index < artifacts.length; index += 1) {
-        if (referenceAssets) await referenceAssets.hydrateGraph(artifacts[index].image);
+      const wanted = renderAll ? remaining : remaining < BigInt(sampleSize) ? remaining : BigInt(sampleSize);
+      let offset = 0n;
+      while (offset < wanted) {
+        const count = Number(wanted - offset < BigInt(batchSize) ? wanted - offset : BigInt(batchSize));
+        const artifactStart = start + offset;
+        const artifacts = runtime.artifacts(output.index, artifactStart, count);
         if (runVersion !== version) return;
-        const cpuImage = await runtime.render(output.index, start + BigInt(index));
-        if (runVersion !== version) return;
-        let image = cpuImage;
-        try {
-          const gpuImage = webgl.render(runtime, artifacts[index].image);
-          if (gpuImage && gpuImage.width === cpuImage.width && gpuImage.height === cpuImage.height) {
-            let maxError = 0;
-            for (let pixel = 0; pixel < cpuImage.pixels.length; pixel += 1)
-              maxError = Math.max(maxError, Math.abs(cpuImage.pixels[pixel] - gpuImage.pixels[pixel]));
-            if (maxError <= gpuImage.maxChannelError) {
-              image = gpuImage;
-              gpuValidated += 1;
-              gpuMaxError = Math.max(gpuMaxError, maxError);
+
+        const fragment = document.createDocumentFragment();
+        for (let index = 0; index < artifacts.length; index += 1) {
+          const cpuImage = await runtime.render(output.index, artifactStart + BigInt(index));
+          if (runVersion !== version) return;
+          let image = cpuImage;
+          if (gpuChecked < sampleSize) {
+            gpuChecked += 1;
+            try {
+              const gpuImage = webgl.render(runtime, artifacts[index].image);
+              if (gpuImage && gpuImage.width === cpuImage.width && gpuImage.height === cpuImage.height) {
+                let maxError = 0;
+                for (let pixel = 0; pixel < cpuImage.pixels.length; pixel += 1)
+                  maxError = Math.max(maxError, Math.abs(cpuImage.pixels[pixel] - gpuImage.pixels[pixel]));
+                if (maxError <= gpuImage.maxChannelError) {
+                  image = gpuImage;
+                  gpuValidated += 1;
+                  gpuMaxError = Math.max(gpuMaxError, maxError);
+                }
+              }
+            } catch {
+              // Shader compilation and context loss are explicit CPU-fallback paths.
             }
           }
-        } catch {
-          // Shader compilation and context loss are explicit CPU-fallback paths.
+          fragment.append(drawImage(image, artifacts[index].key));
+          rendered += 1;
         }
-        fragment.append(drawImage(image, artifacts[index].key));
-        rendered += 1;
+        if (renderAll) preview.append(fragment);
+        else sampleFragment.append(fragment);
+        offset += BigInt(count);
+
+        if (renderAll) {
+          status.textContent = `Rendering ${rendered.toLocaleString()} of ${total.toLocaleString()} previews...`;
+          await frame();
+          if (runVersion !== version) return;
+        }
       }
     }
     if (runVersion !== version) return;
-    preview.replaceChildren(fragment);
-    status.textContent = `${runtime.outputs().length} outputs · ${rendered} bounded previews · ${gpuValidated} WebGL2 validated (max error ${gpuMaxError}) · C/Wasm generation ${runtime.generation}`;
+    if (!renderAll) preview.replaceChildren(sampleFragment);
+    const duration = ((performance.now() - startedAt) / 1000).toFixed(1);
+    const scope = renderAll
+      ? `rendered ${rendered.toLocaleString()} in ${duration}s`
+      : `showing ${rendered.toLocaleString()} of ${total.toLocaleString()}`;
+    status.textContent = `${outputs.length} outputs | ${scope} | WebGL2 matched ${gpuValidated} of ${gpuChecked} checked previews (largest channel difference: ${gpuMaxError}) | compiler generation ${runtime.generation}`;
+    updateRenderAllButton(total, expandable);
+  };
+
+  const requestRender = (renderAll: boolean): void => {
+    const runVersion = ++version;
+    runtime.supersede();
+    void renderCompiledOutputs(runVersion, renderAll).catch((error: unknown) => {
+      if (runVersion !== version || (error instanceof DOMException && error.name === 'AbortError')) return;
+      status.textContent = error instanceof Error ? error.message : String(error);
+      const outputs = runtime.outputs();
+      updateRenderAllButton(
+        outputs.reduce((sum, output) => sum + output.cardinality, 0n),
+        outputs.some((output) => output.cardinality > BigInt(sampleSize)),
+      );
+    });
   };
 
   const run = async (): Promise<void> => {
@@ -177,12 +249,10 @@ export async function createCWasNotebook({
       if (diagnostics.some((diagnostic) => diagnostic.severity === 2)) {
         preview.replaceChildren();
         parameters.replaceChildren();
-        status.textContent = `${diagnostics.length} compiler diagnostics`;
+        status.textContent = `${diagnostics.length} compiler messages. Fix the errors to render a preview.`;
         return;
       }
-      const controls = runtime
-        .parameters()
-        .map((parameter) => parameterControl(runtime, parameter, () => void renderCompiledOutputs(++version)));
+      const controls = runtime.parameters().map((parameter) => parameterControl(runtime, parameter, () => requestRender(false)));
       parameters.replaceChildren(...controls);
       await renderCompiledOutputs(runVersion);
     } catch (error) {
@@ -201,53 +271,58 @@ export async function createCWasNotebook({
     doc: initialSource,
     extensions: [
       minimalSetup,
+      ...binScriptEditorExtensions,
       EditorView.lineWrapping,
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
-          localStorage.setItem('binblock:notebook-source', update.state.doc.toString());
+          localStorage.setItem(BINBLOCK_NOTEBOOK_STORAGE_KEY, update.state.doc.toString());
           scheduleRun();
         }
         if (update.selectionSet) {
           const trace = runtime.traceAt(update.state.selection.main.head);
-          if (trace) status.dataset.trace = `type ${trace.type} · ${trace.from}:${trace.to}`;
+          if (trace) status.dataset.trace = `type ${trace.type} | ${trace.from}:${trace.to}`;
           else delete status.dataset.trace;
         }
       }),
       EditorView.theme({
-        '&': { fontSize: '14px' },
-        '.cm-content': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', padding: '18px 16px 96px' },
+        '&': { backgroundColor: 'var(--surface)', color: 'var(--ink)', fontSize: '16px' },
+        '.cm-content': { fontFamily: 'var(--font-mono)', padding: '18px 16px 96px' },
+        '.cm-gutters': { backgroundColor: 'var(--surface-subtle)', color: 'var(--muted)', borderRight: '1px solid var(--line)' },
         '&.cm-focused': { outline: 'none' },
       }),
     ],
   });
-  referenceButton?.addEventListener('click', async () => {
-    try {
-      status.textContent = 'Loading the 4,312-item reference manifest (images remain on demand)…';
-      referenceAssets ??= await ReferenceAssetHost.load(runtime);
-      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: referenceAssets.source } });
-    } catch (error) {
-      status.textContent = error instanceof Error ? error.message : String(error);
-    }
-  });
-  exportButton?.addEventListener('click', () => {
-    const url = URL.createObjectURL(new Blob([view.state.doc.toString()], { type: 'text/plain;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'program.binscript';
-    link.click();
-    URL.revokeObjectURL(url);
-  });
-  previewStart?.addEventListener('input', () => void renderCompiledOutputs(++version));
-  if (initialSource.includes('import "binblock/reference-set"')) {
-    status.textContent = 'Restoring reference metadata (images remain on demand)…';
-    referenceAssets = await ReferenceAssetHost.load(runtime);
-  }
+  generatedSetButton?.addEventListener(
+    'click',
+    () => {
+      status.textContent = 'Loading the generated palette and layer matrix...';
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: GENERATED_SET_SOURCE } });
+    },
+    { signal: events.signal },
+  );
+  renderAllButton?.addEventListener('click', () => requestRender(true), { signal: events.signal });
+  exportButton?.addEventListener(
+    'click',
+    () => {
+      const url = URL.createObjectURL(new Blob([view.state.doc.toString()], { type: 'text/plain;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'program.binscript';
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    { signal: events.signal },
+  );
+  previewStart?.addEventListener('input', () => requestRender(false), { signal: events.signal });
   await run();
   return {
     view,
     runtime,
     dispose() {
       if (timer !== undefined) window.clearTimeout(timer);
+      events.abort();
+      version += 1;
+      runtime.supersede();
       runtime.dispose();
       webgl.dispose();
       view.destroy();

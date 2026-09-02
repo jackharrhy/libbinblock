@@ -148,7 +148,6 @@ static bb_status bb_wasm_resolve_module(
     const bb_wasm_module_resource *module = &state->modules[index];
     if (!bb_wasm_view_equal(request->specifier, module->specifier, module->specifier_length)) continue;
     memset(out_module, 0, sizeof(*out_module));
-    out_module->kind = BB_RESOLVED_MODULE_SOURCE;
     out_module->identity = (bb_string_view){(const char *)module->identity, module->identity_length};
     out_module->source_name = request->specifier;
     out_module->source = (bb_bytes){module->source, module->source_length};

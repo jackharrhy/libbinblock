@@ -3,7 +3,6 @@
 #include "sha256.h"
 
 #include <binblock/program.h>
-#include <binblock/module.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -324,15 +323,9 @@ static bb_status bb_cli_module_resolver(
 
 found:
   memset(out_module, 0, sizeof(*out_module));
-  out_module->kind = record->length >= 4 && record->bytes[0] == 'B' && record->bytes[1] == 'B' &&
-                         record->bytes[2] == 'M' && record->bytes[3] == 0
-                       ? BB_RESOLVED_MODULE_PRECOMPILED
-                       : BB_RESOLVED_MODULE_SOURCE;
   out_module->identity = (bb_string_view){record->content_id, strlen(record->content_id)};
   out_module->source_name = (bb_string_view){record->path, strlen(record->path)};
-  if (out_module->kind == BB_RESOLVED_MODULE_PRECOMPILED)
-    out_module->precompiled = (bb_bytes){record->bytes, record->length};
-  else out_module->source = (bb_bytes){record->bytes, record->length};
+  out_module->source = (bb_bytes){record->bytes, record->length};
   return BB_STATUS_OK;
 }
 
@@ -760,39 +753,6 @@ static int bb_cli_render_range(
   return rendered == count;
 }
 
-static int bb_cli_precompile_file(const char *source_path, const char *output_path) {
-  uint8_t *source = NULL;
-  size_t source_length = 0;
-  uint8_t *encoded = NULL;
-  size_t encoded_length = 0;
-  size_t written = 0;
-  FILE *output = NULL;
-  int ok = 0;
-  if (!bb_cli_read_file(source_path, &source, &source_length) ||
-      bb_precompiled_module_measure((bb_bytes){source, source_length}, &encoded_length) != BB_STATUS_OK)
-    goto cleanup;
-  encoded = malloc(encoded_length);
-  if (encoded == NULL ||
-      bb_precompiled_module_write(
-        (bb_bytes){source, source_length}, encoded, encoded_length, &written
-      ) != BB_STATUS_OK) goto cleanup;
-  output = fopen(output_path, "wb");
-  if (output == NULL || fwrite(encoded, 1, written, output) != written) goto cleanup;
-  if (fclose(output) != 0) {
-    output = NULL;
-    goto cleanup;
-  }
-  output = NULL;
-  printf("precompiled\t%lu\n", (unsigned long)written);
-  ok = 1;
-
-cleanup:
-  if (output != NULL) fclose(output);
-  free(encoded);
-  free(source);
-  return ok;
-}
-
 static int bb_cli_compare_item(
   bb_cli_loaded *loaded,
   size_t output_index,
@@ -1028,7 +988,6 @@ static void bb_cli_usage(void) {
     "  binblock graph FILE\n"
     "  binblock render FILE [--output N] [--start N] [--count N] [--dir DIR]\n"
     "  binblock package FILE [--limit N] [--dir DIR]\n"
-    "  binblock precompile FILE --out FILE.bbm\n"
     "  binblock inventory DIRECTORY [--out inventory.json]\n"
     "  binblock compare FILE --fixtures DIR [--contracts FILE] [--alpha-only]\n"
     "                   [--report FILE] [--item-report FILE]\n"
@@ -1043,7 +1002,7 @@ int main(int argc, char **argv) {
   const char *report = NULL;
   const char *contracts = NULL;
   const char *item_report = NULL;
-  const char *precompile_output = NULL;
+  const char *output_path = NULL;
   uint64_t start = 0;
   uint64_t count = UINT64_MAX;
   uint64_t limit = UINT64_MAX;
@@ -1078,7 +1037,7 @@ int main(int argc, char **argv) {
     else if (strcmp(argv[index], "--report") == 0 && index + 1 < argc) report = argv[++index];
     else if (strcmp(argv[index], "--contracts") == 0 && index + 1 < argc) contracts = argv[++index];
     else if (strcmp(argv[index], "--item-report") == 0 && index + 1 < argc) item_report = argv[++index];
-    else if (strcmp(argv[index], "--out") == 0 && index + 1 < argc) precompile_output = argv[++index];
+    else if (strcmp(argv[index], "--out") == 0 && index + 1 < argc) output_path = argv[++index];
     else if (strcmp(argv[index], "--summary") == 0) summary_only = 1;
     else if (strcmp(argv[index], "--alpha-only") == 0) alpha_only = 1;
     else {
@@ -1088,15 +1047,13 @@ int main(int argc, char **argv) {
   }
   signal(SIGINT, bb_cli_signal);
   signal(SIGTERM, bb_cli_signal);
-  if (strcmp(command, "inventory") == 0) return bb_cli_inventory(file, precompile_output) ? 0 : 1;
+  if (strcmp(command, "inventory") == 0) return bb_cli_inventory(file, output_path) ? 0 : 1;
   if (!bb_cli_load(file, &loaded)) return 1;
   if (loaded.error_count != 0) ok = 0;
   else if (strcmp(command, "check") == 0) printf("ok\n");
   else if (strcmp(command, "list") == 0) ok = bb_cli_list(&loaded, summary_only);
   else if (strcmp(command, "graph") == 0) ok = bb_cli_graph_dump(&loaded);
   else if (strcmp(command, "render") == 0) ok = bb_cli_render_range(&loaded, output_index, start, count, directory);
-  else if (strcmp(command, "precompile") == 0 && precompile_output != NULL)
-    ok = bb_cli_precompile_file(file, precompile_output);
   else if (strcmp(command, "package") == 0) {
     uint64_t rendered = 0;
     size_t output;

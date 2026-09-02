@@ -60,7 +60,7 @@ jobs:
           -DBB_BUILD_FUZZERS=ON -DBB_BUILD_TESTS=OFF -DBB_BUILD_CLI=OFF
       - run: cmake --build .build/fuzz
       - run: |-
-          for target in syntax semantic bbm graph collection raster; do
+          for target in syntax semantic graph collection raster; do
             .build/fuzz/binblock-fuzz-$target -runs=1000
           done
 
@@ -116,4 +116,4 @@ jobs:
       - run: make -C integrations/wii/demo BINBLOCK_BUILD=$PWD/.build/wii-libogc2
       - run: test -s integrations/wii/demo/binblock-wii-demo.dol
       - run: /opt/devkitpro/devkitPPC/bin/powerpc-eabi-readelf -h integrations/wii/demo/binblock-wii-demo.elf | grep -E 'ELF32|2.s complement, big endian|PowerPC'
-      - run: /opt/devkitpro/devkitPPC/bin/powerpc-eabi-nm integrations/wii/demo/binblock-wii-demo.elf | grep -E 'bb_wii_program_load|bb_wii_program_render_and_upload|GX_Begin|GX_InitTexObj'
+      - run: /opt/devkitpro/devkitPPC/bin/powerpc-eabi-nm integrations/wii/demo/binblock-wii-demo.elf | grep -E 'bb_wii_program_load_source|bb_wii_program_render_and_upload|GX_Begin|GX_InitTexObj'

@@ -8,10 +8,11 @@
     "strict": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
+    "jsx": "react-jsx",
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
-  "include": ["apps/**/*.ts", "bindings/javascript/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"]
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "bindings/javascript/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts", "vite.config.ts"]
 }

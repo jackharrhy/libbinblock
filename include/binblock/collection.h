@@ -20,9 +20,8 @@ typedef enum bb_value_kind {
   BB_VALUE_ARTIFACT = 8,
   BB_VALUE_DEGREES = 9,
   BB_VALUE_PERCENTAGE = 10,
-  BB_VALUE_SYMBOL = 11,
-  BB_VALUE_ASSET = 12,
-  BB_VALUE_CALLABLE = 13
+  BB_VALUE_ASSET = 11,
+  BB_VALUE_CALLABLE = 12
 } bb_value_kind;
 
 typedef enum bb_alias_identity {
@@ -65,7 +64,6 @@ typedef struct bb_value {
     bb_artifact_value artifact;
     double degrees;
     double percentage;
-    bb_symbol symbol;
     bb_asset_reference asset;
     uint32_t callable;
   } data;

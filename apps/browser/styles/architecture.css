@@ -1,0 +1,119 @@
+.technical-layout {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 3rem;
+  align-items: start;
+}
+
+.page-index {
+  position: sticky;
+  top: 0.7rem;
+  display: grid;
+  gap: 0.3rem;
+  padding-top: 0.2rem;
+  font-size: 0.78rem;
+}
+
+.page-index a {
+  width: fit-content;
+}
+
+.technical-sections {
+  min-width: 0;
+}
+
+.technical-sections > section:first-child {
+  border-top-color: var(--red);
+}
+
+.technical-sections > section > p {
+  max-width: 78ch;
+}
+
+.implementation-facts,
+.collection-operations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 2.5rem;
+  margin: 1.4rem 0;
+}
+
+.implementation-facts dt,
+.collection-operations dt {
+  margin-bottom: 0.2rem;
+  font-weight: 700;
+}
+
+.implementation-facts dd,
+.collection-operations dd {
+  margin: 0;
+  line-height: 1.42;
+}
+
+.file-reference {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0;
+}
+
+.code-pair,
+.graph-details,
+.host-notes,
+.build-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.4rem 0;
+}
+
+.graph-details {
+  gap: 3rem;
+}
+
+.node-kind-list {
+  columns: 2;
+  margin: 0;
+  padding-left: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.node-kind-list li {
+  margin-bottom: 0.18rem;
+  break-inside: avoid;
+}
+
+.host-implementation-list {
+  margin: 1.2rem 0 2rem;
+}
+
+.host-notes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  margin-bottom: 0;
+  padding: 1rem;
+  background: #eaffff;
+  border: 1px solid var(--line);
+}
+
+.host-notes p {
+  margin-bottom: 0;
+  font-size: 0.92rem;
+}
+
+.route-message {
+  padding-block: 5rem;
+}
+
+.page-kicker {
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.route-message .button {
+  margin-top: 1rem;
+}

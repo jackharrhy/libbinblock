@@ -1,0 +1,204 @@
+.overview-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(17rem, 0.55fr);
+  gap: 3rem;
+  align-items: end;
+  padding: 3rem 0 2rem;
+}
+
+.overview-intro .lead {
+  max-width: 34rem;
+  margin-bottom: 0;
+}
+
+.repo-summary {
+  margin-bottom: 0;
+  padding: 0.45rem 0.6rem;
+  background: var(--yellow);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+}
+
+.repo-summary div {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 0.8rem;
+  padding: 0.16rem 0;
+}
+
+.repo-summary dt {
+  color: var(--muted);
+}
+
+.repo-summary dd {
+  margin: 0;
+}
+
+.overview-page > section,
+.technical-sections > section {
+  padding: 2.2rem 0 2.5rem;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 1rem;
+}
+
+.section-copy {
+  max-width: 48rem;
+  margin-bottom: 1.2rem;
+}
+
+.section-copy p:last-child {
+  margin-bottom: 0;
+}
+
+.example-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.source-code {
+  min-height: 100%;
+  background: #eaffff;
+}
+
+.example-render {
+  min-width: 0;
+  margin: 0;
+}
+
+.example-output-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.example-output-grid figure {
+  display: grid;
+  grid-template-rows: 96px minmax(2.4em, auto);
+  gap: 0.25rem;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+}
+
+.example-output-grid canvas {
+  display: block;
+  align-self: center;
+  justify-self: center;
+  width: 96px;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  background: var(--silver);
+}
+
+.example-output-grid figcaption {
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+
+.example-render > figcaption {
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.example-render-status {
+  display: grid;
+  min-height: 20rem;
+  margin: 0;
+  padding: 1rem;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.example-render--single,
+.example-render--single .example-output-grid {
+  height: 100%;
+}
+
+.example-render--single .example-output-grid {
+  grid-template-columns: 1fr;
+}
+
+.example-render--single .example-output-grid figure {
+  grid-template-rows: minmax(12rem, 1fr) auto;
+}
+
+.example-render--single .example-output-grid canvas {
+  width: min(100%, 13rem);
+}
+
+.recipe-list {
+  display: grid;
+  gap: 2.5rem;
+}
+
+.recipe-example {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.recipe-example header p {
+  margin-bottom: 0;
+  font-size: 0.92rem;
+}
+
+.recipe-pair {
+  display: grid;
+  grid-template-columns: minmax(20rem, 1.25fr) minmax(12rem, 0.75fr);
+  gap: 1rem;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.recipe-pair .source-code pre {
+  height: 100%;
+}
+
+.syntax-rules {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem 2rem;
+  margin: 1.5rem 0;
+}
+
+.syntax-rules div {
+  min-width: 0;
+}
+
+.syntax-rules dt {
+  margin-bottom: 0.25rem;
+  color: var(--red);
+  font-weight: 700;
+}
+
+.syntax-rules dd {
+  margin: 0;
+}
+
+.syntax-next {
+  margin-bottom: 0;
+}
+
+.host-implementation-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.6rem 3rem;
+}
+
+.host-implementation-list p {
+  margin: 0.4rem 0 0;
+}

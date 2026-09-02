@@ -1,7 +1,8 @@
 # Building libbinblock
 
 The portable core is a C11 static library with no platform or graphics
-dependencies. Optional Wasm, Godot, and Wii targets consume its public ABI.
+dependencies. Optional Wasm, SDL GPU, Godot, and Wii targets consume its public
+ABI.
 
 Supported native development compilers are Clang 14 or newer, GCC 11 or newer,
 and MSVC 19.34 or newer. CMake 3.20 or newer is required. The public API is C11
@@ -47,15 +48,13 @@ npm run test:wasm
 npm run build
 ```
 
-The first command builds the integer-handle ABI and runs its Node smoke test.
-The second emits the production notebook under `dist/`. The browser host uses
-WebGL2 for supported graph regions, checks its declared tolerance against the
-CPU result, and falls back on unsupported nodes or context loss.
-
-For the complete reference program, the Wasm host first registers all 4,312
-logical assets as metadata and compiles without raster payloads. Selecting a
-bounded preview then fetches, verifies, decodes, and hydrates only the content
-IDs traversed from those graph roots. `npm run build:wasm:web` emits the smaller
+The first command builds the integer-handle ABI and runs its Node smoke test,
+including the generic host-asset path. The second emits the production notebook
+under `dist/`. The browser's generated-set preset uses only BinScript palette,
+gradient, collection, composition, and resize operations; the reference corpus
+is not copied into the site. The browser host uses WebGL2 for supported graph
+regions, checks its declared tolerance against the CPU result, and falls back on
+unsupported nodes or context loss. `npm run build:wasm:web` emits the smaller
 standalone Wasm/WebGL2 smoke harness under `.build/wasm-site/`.
 
 ## Godot and Wii
@@ -71,19 +70,28 @@ cmake --build .build/godot --target binblock-godot
 
 See `integrations/godot/README.md` for the importable `BinProgram`/`BinTexture`
 resources and official-engine runtime gate. See `integrations/wii/README.md` for
-the BBM, CPU-bake, GX-tile, upload-callback path, libogc2 build, and Dolphin/Wii
+the source-load, CPU-bake, GX-tile, upload-callback path, libogc2 build, and Dolphin/Wii
 runtime gate.
+
+## SDL GPU
+
+`BB_BUILD_SDL_GPU=ON` adds a target-local graph lowerer and instanced renderer.
+It uses SPIR-V with current native SDL GPU drivers and WGSL with SDL's
+experimental WebGPU backend. The generated-set smoke compares a 256-item GPU
+atlas with the CPU renderer; an Emscripten demo presents the same batch in a
+browser. See `integrations/sdl_gpu/README.md` for the supported graph subset,
+ownership rules, SDL PR/Dawn pins, desktop commands, and browser build.
 
 ## Fuzzing
 
-Native Clang builds expose libFuzzer entry points for arbitrary BinScript and
-serialized-module bytes:
+Native Clang builds expose libFuzzer entry points for arbitrary BinScript,
+graphs, collections, and raster inputs:
 
 ```sh
 cmake -S . -B .build/fuzz -G Ninja -DBB_BUILD_FUZZERS=ON \
   -DBB_BUILD_TESTS=OFF -DBB_BUILD_CLI=OFF
 cmake --build .build/fuzz
-for target in syntax semantic bbm graph collection raster; do
+for target in syntax semantic graph collection raster; do
   .build/fuzz/binblock-fuzz-$target -max_total_time=60
 done
 ```
