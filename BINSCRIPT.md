@@ -22,16 +22,17 @@ The current C-owned vertical slice supports:
   ordered image collections.
 - Pure assignments and notebook output from standalone image-set expressions.
 - Lazy ordered collections with bounded indexed slices, mapping, filtering,
-  flattening, concatenation, zip, product, selection, and stable artifact keys.
+  flattening, concatenation, zip, product, selection, stable artifact keys, and
+  generic `mask-pair`/`over-pair` mappings for artifact products.
 - Source-ranged structured diagnostics, semantic trace queries, and typed scalar
   parameters that recompile graph shape through the Wasm adapter.
 - Two-dimensional vectors and named radial-gradient geometry (`center`,
   `radius`, and compatibility `easing`) without exposing host or JSON types.
 - Immutable image nodes for fills, fields, gradients, transforms, masks,
   composition, resize, and host-resolved assets.
-- Precompiled `.bbm` envelopes with explicit byte order, version, and hash.
-- A generated lazy reference program covering all 4,312 outputs with explicit
-  analytic, alias, and raster-backed conformance contracts.
+- A compact, asset-free generated set for interactive use and a separate lazy
+  reference program with explicit analytic, alias, and raster-backed
+  conformance contracts.
 
 BinScript is parsed and lowered without evaluating arbitrary JavaScript. The C
 semantic graph defines production execution.
@@ -54,28 +55,13 @@ ownership boundary:
 - Editor tooling: a structural CodeMirror language, completion, hover documentation, formatting, rename, source-mapped schema errors, and module navigation.
 - Persistence: local snapshots, file import/export, shareable source, and recovery of unsaved edits.
 
-## Reference pipeline
+## Generated set and reference corpus
 
-`reference-set/reference-set.binscript` describes the complete 4,312-image
-pipeline as one lazy visible program. Known formulas are generic graph nodes;
-unrecovered behavior is an explicit compatibility asset or alias. The production
-notebook starts with a small editable program for fast interaction and can compile
-the complete program through the same Wasm API.
-
-The document should visibly bind and compose:
-
-1. The default palette and flat-color family.
-2. Gradient masks as visible axial, Euclidean, Chebyshev, border-distance, and layered radial fields.
-3. Historic gradient variants.
-4. Downscaled variants.
-5. Foreground-alpha fields and foreground composites.
-6. Organic and elliptical gradients.
-7. Layer compositions and special outputs.
-8. Sans-serif and serif glyph families.
-9. Ordered-result aliases and raster exceptions.
-10. The final collection, atlas, manifest, and package outputs.
-
-A target shape is:
+[`examples/generated-set.binscript`](examples/generated-set.binscript) is the
+browser preset. It defines 16 colors and 16 analytic layers, combines them with
+`product(blocks, layers).map(over-pair)`, and derives small variants through the
+normal image API. Its 544 outputs are lazy, editable, and require no manifest or
+raster assets:
 
 ```binscript
 import "binblock/basic"
@@ -83,27 +69,22 @@ size := 64
 colors := default-palette()
 
 flat := colors.map(fill).size(size)
-masks := collect([mask-00, mask-01, /* visible field bindings */, mask-18])
-variants := product(colors, masks).map(render-variant)
-downscaled := variants.map(resize(8))
-
-foregrounds := reference-foregrounds(colors)
-organic := reference-organic-gradients(size)
-layers := reference-layer-compositions()
-glyphs := reference-glyphs(colors)
-results := reference-result-aliases(variants)
-
-default := union(flat, masks, variants, downscaled, foregrounds, organic, layers, glyphs, results)
-default
+layers := collect([black-x, black-y, white-x, white-y])
+variants := product(flat, layers).map(over-pair)
+small := variants.size(8)
 ```
 
-Names and combinator details can evolve, but every compatibility dependency must
-remain explicit and full materialization happens only through an export/package
-request.
+`reference-set/reference-set.binscript` has a different job: it describes the
+locked archive used by CLI and CI conformance checks. Known formulas use generic
+graph nodes; unrecovered behavior remains an explicit compatibility asset or
+alias. It is not copied into the normal browser build. An asset can be removed
+from that developer-only corpus when a native formula satisfies its declared
+per-file contract.
 
 ## Compatibility evolution
 
-The default program already enumerates the locked archive lazily. Compatibility
+The conformance program enumerates the locked archive lazily. Compatibility
 assets remain explicit until recovered formulas or pinned font pipelines satisfy
 their per-file contracts; they are removed incrementally, never by changing core
-pixel semantics.
+pixel semantics. Application programs do not inherit those compatibility assets
+or their packaging cost.

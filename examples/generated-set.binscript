@@ -1,0 +1,49 @@
+import "binblock/basic"
+
+size := 64
+colors := palette(
+  black: #000000,
+  gray: #808080,
+  silver: #c0c0c0,
+  white: #ffffff,
+  blue_lo: #000080,
+  blue_hi: #0000ff,
+  green_lo: #008000,
+  green_hi: #00ff00,
+  cyan_lo: #008080,
+  cyan_hi: #00ffff,
+  red_lo: #800000,
+  red_hi: #ff0000,
+  yellow_lo: #808000,
+  yellow_hi: #ffff00,
+  magenta_lo: #800080,
+  magenta_hi: #ff00ff,
+)
+blocks := colors.map(fill).size(size)
+
+layers := collect([
+  artifact("black-up", lg(0deg, black, transparent-black).size(size)),
+  artifact("black-right", lg(90deg, black, transparent-black).size(size)),
+  artifact("black-down", lg(180deg, black, transparent-black).size(size)),
+  artifact("black-left", lg(270deg, black, transparent-black).size(size)),
+  artifact("white-up", lg(0deg, white, transparent-white).size(size)),
+  artifact("white-right", lg(90deg, white, transparent-white).size(size)),
+  artifact("white-down", lg(180deg, white, transparent-white).size(size)),
+  artifact("white-left", lg(270deg, white, transparent-white).size(size)),
+  artifact("black-diagonal-a", lg(45deg, black, transparent-black).size(size)),
+  artifact("black-diagonal-b", lg(135deg, black, transparent-black).size(size)),
+  artifact("white-diagonal-a", lg(45deg, white, transparent-white).size(size)),
+  artifact("white-diagonal-b", lg(135deg, white, transparent-white).size(size)),
+  artifact("black-center", rg(black 20%, transparent-black, radius: 44).size(size)),
+  artifact("black-edge", rg(transparent-black 20%, black, radius: 44).size(size)),
+  artifact("white-center", rg(white 20%, transparent-white, radius: 44).size(size)),
+  artifact("white-edge", rg(transparent-white 20%, white, radius: 44).size(size)),
+])
+
+variants := product(blocks, layers).map(over-pair)
+small := variants.size(8)
+
+blocks
+layers
+variants
+small

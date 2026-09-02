@@ -11,14 +11,13 @@ program and rendered artifacts by structural identity.
 
 A future dynamic material feature will be a separate restricted, pure field
 subset. Its only varying inputs will be explicitly declared coordinates, time,
-and uniforms. A backend must advertise the field node kinds and limits it can
-execute dynamically. Static image nodes do not become shaders merely because a
-GPU backend can accelerate their rasterization.
+and uniforms. An adapter must explicitly define the field node kinds and limits
+it can execute dynamically. Static image nodes do not become shaders merely
+because a GPU adapter can accelerate their rasterization.
 
-The render planner may execute supported regions directly, CPU-bake unsupported
-regions into textures, or reject the request when fallback is disabled. WebGL2,
-Godot, and GX integrations consume the same semantic nodes and capability model;
-none may add target-only meaning to a core operation.
+WebGL2, Godot, and GX integrations consume the same semantic nodes. They may
+render supported nodes directly or use CPU-baked textures, but none may add
+target-only meaning to a core operation.
 
 ## Consequences
 

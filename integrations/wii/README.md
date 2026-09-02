@@ -2,7 +2,7 @@
 
 This adapter keeps GX and filesystem types out of the public core ABI. It can:
 
-- load an endian-stable `.bbm` envelope from host-provided bytes;
+- load UTF-8 BinScript from host-provided bytes;
 - enumerate a bounded semantic program through the same C compiler used by the
   native and Wasm hosts;
 - CPU-bake a selected output on demand;
@@ -21,14 +21,14 @@ cmake --build .build/wii
 ```
 
 The host owns disc/SD/package reads, scratch memory, cache flushes, GX objects,
-and display lists. The native unit suite exercises the same BBM load, bounded
+and display lists. The native unit suite exercises the same source load, bounded
 enumeration, bake, tile conversion, and upload callback without requiring Wii
 hardware.
 
 ## libogc2 GX demo
 
-`demo/` is a real devkitPPC/libogc2 consumer. It loads an embedded BBM v1
-package generated from `demo/suite.binscript`, verifies its bounded output,
+`demo/` is a real devkitPPC/libogc2 consumer. It loads embedded UTF-8 BinScript
+from `demo/suite.binscript`, verifies its bounded output,
 bakes 12 images with widths from 48–80 pixels and heights from 32–72 pixels,
 converts them to tiled
 `GX_TF_RGBA8`, flushes the CPU cache, and initializes a `GXTexObj` for each one.

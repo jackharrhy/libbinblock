@@ -28,7 +28,7 @@ Cardinality over the configured maximum, or arithmetic that would exceed
 `uint64_t`, returns `BB_STATUS_LIMIT_EXCEEDED` before proportional allocation.
 `max_output_count` bounds render-on-demand indices. Slice is the bounded preview
 primitive. Host render callbacks may implement bounded caches before delegating
-to a backend; core collection plans own no implicit cache.
+to a target adapter; core collection plans own no implicit cache.
 
 Artifacts carry stable key/path views, provenance, and an explicit alias class:
 recipe identity, decoded-pixel identity, or encoded-byte identity. These classes

@@ -18,8 +18,22 @@ option(BB_BUILD_CLI "Build the native BinBlock command-line host" ON)
 option(BB_BUILD_WASM "Build the Emscripten host ABI module" OFF)
 option(BB_BUILD_GODOT "Build the Godot 4 GDExtension consumer" OFF)
 option(BB_BUILD_WII "Build the portable Wii/GX texture adapter" OFF)
+option(BB_BUILD_SDL_GPU "Build the optional SDL3 GPU graph renderer" OFF)
+option(BB_BUILD_SDL_GPU_BROWSER_DEMO "Build the SDL3/WebGPU generated-set browser demo" OFF)
+option(
+  BB_SDL_GPU_WEBGPU_PR_READBACK_WORKAROUND
+  "Work around SDL WebGPU PR #16020 using layer as texture-copy depth in GPU tests"
+  OFF
+)
 option(BB_BUILD_FUZZERS "Build libFuzzer entry points with Clang" OFF)
 option(BB_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+
+if(BB_BUILD_SDL_GPU_BROWSER_DEMO AND NOT BB_BUILD_SDL_GPU)
+  message(FATAL_ERROR "BB_BUILD_SDL_GPU_BROWSER_DEMO requires BB_BUILD_SDL_GPU")
+endif()
+if(BB_BUILD_SDL_GPU_BROWSER_DEMO AND NOT EMSCRIPTEN)
+  message(FATAL_ERROR "BB_BUILD_SDL_GPU_BROWSER_DEMO requires the Emscripten CMake toolchain")
+endif()
 
 function(bb_enable_project_warnings target)
   if(MSVC)
@@ -47,23 +61,25 @@ else()
 endif()
 
 add_library(binblock ${BB_LIBRARY_KIND}
-  lib/core/arena.c
-  lib/backend/planner.c
-  lib/backend/profiles.c
   lib/core/checked_math.c
   lib/core/collection.c
   lib/core/context.c
   lib/core/diagnostic.c
   lib/core/graph.c
-  lib/core/interner.c
-  lib/core/module.c
   lib/core/utf8.c
 )
 
 if(BB_BUILD_BINSCRIPT)
   target_sources(binblock PRIVATE
     lib/frontend/syntax.c
-    lib/semantic/program.c
+    lib/semantic/program_assets.c
+    lib/semantic/program_collections.c
+    lib/semantic/program_compile.c
+    lib/semantic/program_core.c
+    lib/semantic/program_evaluate.c
+    lib/semantic/program_gradients.c
+    lib/semantic/program_members.c
+    lib/semantic/program_runtime.c
   )
   target_compile_definitions(binblock PUBLIC BB_HAS_BINSCRIPT=1)
 endif()
@@ -117,7 +133,7 @@ if(BB_BUILD_FUZZERS)
     message(FATAL_ERROR "BB_BUILD_FUZZERS requires BB_BUILD_BINSCRIPT and BB_BUILD_RASTER")
   endif()
   target_compile_options(binblock PRIVATE -fsanitize=fuzzer-no-link,address,undefined -fno-omit-frame-pointer)
-  foreach(fuzzer IN ITEMS syntax semantic bbm graph collection raster)
+  foreach(fuzzer IN ITEMS syntax semantic graph collection raster)
     add_executable(binblock-fuzz-${fuzzer} tests/fuzz/fuzz_${fuzzer}.c)
     target_compile_features(binblock-fuzz-${fuzzer} PRIVATE c_std_11)
     target_link_libraries(binblock-fuzz-${fuzzer} PRIVATE binblock::binblock)
@@ -189,6 +205,10 @@ if(BB_BUILD_WII)
   add_library(binblock::wii ALIAS binblock-wii)
 endif()
 
+if(BB_BUILD_SDL_GPU)
+  add_subdirectory(integrations/sdl_gpu)
+endif()
+
 if(BB_BUILD_GODOT)
   if(NOT BB_BUILD_RASTER)
     message(FATAL_ERROR "BB_BUILD_GODOT requires BB_BUILD_RASTER")
@@ -234,6 +254,11 @@ if(BB_BUILD_TESTS)
       COMMAND binblock-cli list ${CMAKE_CURRENT_SOURCE_DIR}/examples/preview-304.binscript
     )
     set_tests_properties(binblock-cli-list-304 PROPERTIES PASS_REGULAR_EXPRESSION "cardinality=304")
+    add_test(
+      NAME binblock-cli-list-generated-product-256
+      COMMAND binblock-cli list ${CMAKE_CURRENT_SOURCE_DIR}/examples/generated-set.binscript --summary
+    )
+    set_tests_properties(binblock-cli-list-generated-product-256 PROPERTIES PASS_REGULAR_EXPRESSION "cardinality=256")
     add_test(
       NAME binblock-cli-list-reference-4312
       COMMAND binblock-cli list ${CMAKE_CURRENT_SOURCE_DIR}/reference-set/reference-set.binscript --summary

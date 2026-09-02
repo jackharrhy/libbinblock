@@ -1,7 +1,7 @@
 # libbinblock
 
 `libbinblock` is a portable C11 BinScript compiler, immutable semantic graph,
-lazy artifact planner, backend planner, and canonical RGBA8 software renderer.
+lazy artifact evaluator, and canonical RGBA8 software renderer.
 The browser notebook uses the library through WebAssembly and optionally
 validates supported previews through WebGL2; the native CLI uses the same
 compiler and rasterizer.
@@ -10,29 +10,26 @@ See the [build instructions](docs/building.md),
 [implementation status](docs/implementation-status.md),
 [architecture decisions](docs/decisions/), and [BinScript guide](BINSCRIPT.md).
 
-The complete lazy reference program is generated at
-`reference-set/reference-set.binscript`. Run `npm run conformance:reference` to
-compare all 4,312 outputs and produce aggregate and per-file reports.
-
-The browser registers the reference manifest as asset metadata, compiles the
-complete program without downloading the PNG archive, and hydrates only the
-assets needed by the requested preview window. Downloaded PNGs are checked by
-encoded SHA-256 and decoded with the same straight-alpha RGBA8 contract used by
-the manifest, including RGB stored beneath zero alpha.
+The browser's **Generated set** example is a small, asset-free BinScript program:
+it combines a palette with analytic layers through a lazy product and renders
+the results with the same C/Wasm compiler used by the CLI. The larger checked-in
+reference corpus is kept out of the website and remains a developer conformance
+oracle. Run `npm run conformance:reference` when a change needs comparison
+against that archive.
 
 A **bin**block **gen**erator.
 
 ## Where to start
 
-| Goal                                | Entry point                                                                                                                             |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Embed the C library                 | [`include/binblock/binblock.h`](include/binblock/binblock.h), then link the `binblock::binblock` CMake target                           |
-| Learn BinScript                     | [`BINSCRIPT.md`](BINSCRIPT.md) and [`examples/starter.binscript`](examples/starter.binscript)                                           |
-| Use the native CLI                  | [`cli/main.c`](cli/main.c) and the commands below                                                                                       |
-| Work on the browser notebook        | [`apps/browser/app.ts`](apps/browser/app.ts); `npm run build` is orchestrated by [`scripts/build-browser.ts`](scripts/build-browser.ts) |
-| Use an engine integration           | [Godot GDExtension](integrations/godot/README.md) or [Wii/GX adapter](integrations/wii/README.md)                                       |
-| Understand implementation decisions | [`docs/decisions/`](docs/decisions/) and [`docs/implementation-status.md`](docs/implementation-status.md)                               |
-| Validate a change                   | `npm run verify`                                                                                                                        |
+| Goal                                 | Entry point                                                                                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Embed the C library                  | [`include/binblock/binblock.h`](include/binblock/binblock.h), then link the `binblock::binblock` CMake target                                      |
+| Learn BinScript                      | [`BINSCRIPT.md`](BINSCRIPT.md) and [`examples/starter.binscript`](examples/starter.binscript)                                                      |
+| Use the native CLI                   | [`cli/main.c`](cli/main.c) and the commands below                                                                                                  |
+| Work on the browser portal           | [`apps/browser/main.tsx`](apps/browser/main.tsx), with the notebook engine in [`apps/browser/c-wasm-notebook.ts`](apps/browser/c-wasm-notebook.ts) |
+| Use a graphics or engine integration | [SDL GPU](integrations/sdl_gpu/README.md), [Godot GDExtension](integrations/godot/README.md), or [Wii/GX](integrations/wii/README.md)              |
+| Understand implementation decisions  | [`docs/decisions/`](docs/decisions/) and [`docs/implementation-status.md`](docs/implementation-status.md)                                          |
+| Validate a change                    | `npm run verify`                                                                                                                                   |
 
 ## Repository layout
 
@@ -40,19 +37,19 @@ The production dependency direction is intentionally simple: public headers in
 `include/binblock/` describe the API, `lib/` implements it, and the CLI,
 bindings, apps, and integrations consume it.
 
-| Path                | Owns                                                                                                              |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `include/binblock/` | Installed public C API, including the Wasm host ABI declarations                                                  |
-| `lib/`              | Portable C11 implementation, grouped by core, frontend, semantic, raster, backend, and reference-profile concerns |
-| `cli/`              | Native `binblock` executable and its PNG/hash adapters                                                            |
-| `bindings/`         | Generic JavaScript runtime wrapper, WebGL2 lowering, and the Emscripten C ABI                                     |
-| `apps/browser/`     | Production CodeMirror/Wasm notebook and reference-corpus asset host                                               |
-| `integrations/`     | Consumer adapters and runnable Godot and Wii demos                                                                |
-| `examples/`         | Small BinScript programs suitable for the CLI                                                                     |
-| `tests/`            | Current native, language, fuzz, TypeScript, browser-Wasm, and integration tests                                   |
-| `scripts/`          | Build, inventory, benchmark, and generated-contract tooling                                                       |
-| `reference-set/`    | Checked-in 4,312-PNG conformance corpus plus its generated manifest, BinScript program, and TSV contract          |
-| `docs/`             | Build guidance, decisions, status, render profiles, and reference-corpus rationale                                |
+| Path                | Owns                                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------- |
+| `include/binblock/` | Installed public C API, including the Wasm host ABI declarations                                         |
+| `lib/`              | Portable C11 implementation, grouped by core, frontend, semantic, raster, and reference-profile concerns |
+| `cli/`              | Native `binblock` executable and its PNG/hash adapters                                                   |
+| `bindings/`         | Generic JavaScript runtime wrapper, WebGL2 lowering, and the Emscripten C ABI                            |
+| `apps/browser/`     | React developer portal, CodeMirror/Wasm playground, and compact native generated-set example             |
+| `integrations/`     | Consumer adapters and runnable Godot and Wii demos                                                       |
+| `examples/`         | Small BinScript programs suitable for the CLI                                                            |
+| `tests/`            | Current native, language, fuzz, TypeScript, browser-Wasm, and integration tests                          |
+| `scripts/`          | Wasm staging, inventory, benchmark, and generated-contract tooling                                       |
+| `reference-set/`    | Checked-in 4,312-PNG conformance corpus plus its generated manifest, BinScript program, and TSV contract |
+| `docs/`             | Build guidance, decisions, status, render profiles, and reference-corpus rationale                       |
 
 The large-by-file-count `reference-set/` directory is test source data, not a
 build output. Generated local output belongs in ignored directories such as
@@ -66,11 +63,12 @@ Install Node.js and activate an Emscripten SDK, then run:
 
 ```sh
 npm install
-npm run build
-python3 -m http.server 8888
+npm run build:wasm
+npm run dev
 ```
 
-Open `http://localhost:8888/dist/`.
+Open `http://localhost:8888/`. The Vite server provides route fallback and hot
+module replacement. `npm run build` emits the production portal to `dist/`.
 
 For native library/CLI development without Emscripten, use `npm run test:c`.
 
@@ -78,7 +76,7 @@ For native library/CLI development without Emscripten, use `npm run test:c`.
 
 `npm run build:c` creates `.build/native/binblock`. The host can check source,
 inspect a stable graph dump, enumerate lazy outputs, render/package bounded
-ranges, precompile BBM modules, inventory fixtures, and compare against an
+ranges, inventory fixtures, and compare against an
 executable conformance contract:
 
 ```sh

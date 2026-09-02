@@ -1,0 +1,142 @@
+@media (max-width: 900px) {
+  .site-header {
+    margin-inline: 0.45rem;
+  }
+
+  .site-brand span {
+    display: none;
+  }
+
+  .overview-intro,
+  .technical-layout,
+  .example-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-intro {
+    gap: 1.5rem;
+  }
+
+  .page-index {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .host-notes,
+  .syntax-rules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recipe-example {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .notebook-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 40%);
+  }
+}
+
+@media (max-width: 700px) {
+  :root {
+    font-size: 17px;
+  }
+
+  .site-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.45rem;
+  }
+
+  .site-brand strong {
+    font-size: 1.1rem;
+  }
+
+  .site-nav {
+    justify-content: space-between;
+    width: 100%;
+    gap: 0;
+    font-size: 0.72rem;
+  }
+
+  .site-nav a {
+    padding-inline: 0.25rem;
+  }
+
+  .page-width {
+    width: min(100% - 1rem, 76rem);
+  }
+
+  .page-header,
+  .overview-intro {
+    padding-top: 1.8rem;
+  }
+
+  .host-implementation-list,
+  .implementation-facts,
+  .collection-operations,
+  .code-pair,
+  .graph-details,
+  .host-notes,
+  .example-output-grid,
+  .syntax-rules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recipe-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .site-shell--playground {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .site-main--playground {
+    overflow: visible;
+  }
+
+  .notebook-app {
+    min-height: calc(100dvh - 4.5rem);
+  }
+
+  .notebook-heading {
+    flex-basis: 100%;
+  }
+
+  .notebook-heading span {
+    margin-left: auto;
+  }
+
+  .notebook-workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(52dvh, 1fr) auto;
+  }
+
+  .binscript-editor {
+    min-height: 52dvh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .notebook-preview {
+    max-height: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

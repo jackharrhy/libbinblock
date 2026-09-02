@@ -2,7 +2,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { createBinBlockRuntime, type BinBlockWasmFactory } from '../bindings/javascript/binblock.js';
-import { decodeReferencePng } from '../apps/browser/reference-assets.js';
+import { decodeReferencePng } from './decode-reference-png.js';
 import type { ReferenceManifest } from './reference-manifest.js';
 
 const moduleUrl = pathToFileURL(resolve('.build/wasm/binblock.mjs')).href;

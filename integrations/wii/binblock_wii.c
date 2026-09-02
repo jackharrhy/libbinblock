@@ -74,14 +74,12 @@ bb_status bb_wii_rgba8_texture_encode(
   return BB_STATUS_OK;
 }
 
-bb_status bb_wii_program_load(
+bb_status bb_wii_program_load_source(
   const bb_context_desc *context_desc,
-  bb_bytes precompiled_module,
+  bb_bytes source,
   const bb_compile_options *options,
   bb_wii_program **out_program
 ) {
-  bb_precompiled_module_info module_info;
-  bb_bytes source;
   bb_wii_program *host = NULL;
   bb_context *context = NULL;
   bb_source_id source_id = BB_SOURCE_ID_NONE;
@@ -89,8 +87,6 @@ bb_status bb_wii_program_load(
   bb_status status;
   if (out_program == NULL) return BB_STATUS_INVALID_ARGUMENT;
   *out_program = NULL;
-  status = bb_precompiled_module_read(precompiled_module, &module_info, &source);
-  if (status != BB_STATUS_OK || module_info.version != BB_PRECOMPILED_MODULE_VERSION) return status;
   status = bb_context_create(context_desc, &context);
   if (status != BB_STATUS_OK) return status;
   if (context_desc != NULL && context_desc->allocator.alloc != NULL) {
@@ -113,7 +109,7 @@ bb_status bb_wii_program_load(
   if (status == BB_STATUS_OK)
     status = bb_context_add_source(
       host->context,
-      (bb_string_view){"precompiled.bbm", sizeof("precompiled.bbm") - 1},
+      (bb_string_view){"program.binscript", sizeof("program.binscript") - 1},
       source,
       &source_id
     );

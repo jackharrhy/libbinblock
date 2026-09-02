@@ -7,7 +7,7 @@ Status: accepted
 The semantic layer uses tagged values, never strings or JSON as a universal value
 representation. The initial public value set is `bool`, signed 64-bit integer,
 finite binary64 number, UTF-8 string, `RGBA8` color, two-dimensional finite
-vector, degrees, percentage, interned symbol, image node, logical asset reference,
+vector, degrees, percentage, image node, logical asset reference,
 callable handle, and output artifact. An ordered `collection<T>` is a lazy plan
 over values rather than a value encoded inside another value.
 

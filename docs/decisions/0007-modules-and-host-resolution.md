@@ -6,8 +6,7 @@ Status: accepted
 
 Imports and assets are logical identities. The compiler asks host callbacks to
 resolve a module request or asset request and never derives a filesystem path.
-A resolved module is built-in, UTF-8 source, or an endian-stable versioned
-precompiled envelope. It carries a stable content identity used for import-depth
+A resolved module is built-in or UTF-8 source. It carries a stable content identity used for import-depth
 checks, cycle diagnostics, and cache identity.
 
 A resolved asset carries a logical ID, content ID, dimensions, format
@@ -18,10 +17,12 @@ callback memory is consumed only for the documented callback/query lifetime.
 
 `binblock/basic` is a built-in module containing only generic language and image
 operations. Reference compatibility mappings and assets are isolated in
-`binblock/reference-set` and the generated reference program. Native tests may
-resolve from memory, the CLI may use files, the browser may use verified HTTP
-fetches, Godot may use resources, and Wii may use packaged bytes without changing
-the compiler or graph.
+`binblock/reference-set` and the generated conformance program. Native tests may
+resolve from memory and the CLI may use files. The normal browser application
+uses an asset-free generated set and does not package the reference corpus;
+another browser host may still provide verified HTTP assets. Godot may use
+resources, and Wii may use packaged source bytes without changing the compiler
+or graph.
 
 ## Consequences
 

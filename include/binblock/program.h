@@ -10,23 +10,16 @@ extern "C" {
 
 typedef struct bb_program bb_program;
 
-typedef enum bb_resolved_module_kind {
-  BB_RESOLVED_MODULE_SOURCE = 1,
-  BB_RESOLVED_MODULE_PRECOMPILED = 2
-} bb_resolved_module_kind;
-
 typedef struct bb_module_request {
   bb_string_view specifier;
   bb_string_view importer_identity;
 } bb_module_request;
 
 typedef struct bb_resolved_module {
-  bb_resolved_module_kind kind;
   /* Stable content identity used for cycle detection and cache identity. */
   bb_string_view identity;
   bb_string_view source_name;
   bb_bytes source;
-  bb_bytes precompiled;
 } bb_resolved_module;
 
 typedef struct bb_asset_request {
@@ -79,11 +72,10 @@ typedef enum bb_semantic_type {
   BB_SEMANTIC_IMAGE = 7,
   BB_SEMANTIC_DEGREES = 8,
   BB_SEMANTIC_PERCENTAGE = 9,
-  BB_SEMANTIC_SYMBOL = 10,
-  BB_SEMANTIC_ASSET = 11,
-  BB_SEMANTIC_CALLABLE = 12,
-  BB_SEMANTIC_ARTIFACT = 13,
-  BB_SEMANTIC_COLLECTION = 14
+  BB_SEMANTIC_ASSET = 10,
+  BB_SEMANTIC_CALLABLE = 11,
+  BB_SEMANTIC_ARTIFACT = 12,
+  BB_SEMANTIC_COLLECTION = 13
 } bb_semantic_type;
 
 typedef struct bb_parameter_override {

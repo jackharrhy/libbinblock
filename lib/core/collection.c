@@ -100,7 +100,6 @@ static bb_status bb_value_validate(const bb_context *context, const bb_value *va
     status = bb_context_validate_span(context, artifact->provenance);
     if (status != BB_STATUS_OK) return status;
   }
-  if (value->kind == BB_VALUE_SYMBOL && value->data.symbol == BB_SYMBOL_NONE) return BB_STATUS_INVALID_ARGUMENT;
   if (value->kind == BB_VALUE_CALLABLE && value->data.callable == 0) return BB_STATUS_INVALID_ARGUMENT;
   if (value->kind == BB_VALUE_ASSET) {
     const bb_asset_reference *asset = &value->data.asset;

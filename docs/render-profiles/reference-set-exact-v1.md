@@ -9,8 +9,8 @@ compatibility module.
 
 Unless an operation is explicitly marked as a compatibility exception, an
 implementation claiming exact support must produce the same RGBA bytes described
-here. A backend that cannot do so must report bounded-error, visual-only, or
-unsupported support and allow the planner to use the reference CPU backend.
+here. An accelerated adapter that cannot do so must declare its tolerance or
+fall back to the reference CPU renderer.
 
 ## 1. Surface and arithmetic model
 

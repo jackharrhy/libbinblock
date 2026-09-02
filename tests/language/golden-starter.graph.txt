@@ -11,6 +11,6 @@ node	6	fill	1x1	inputs=-	hash=273904de08a856030edecd889d51c42a	provenance=1	colo
 node	7	resize	4x4	inputs=6	hash=5ab4822b9216e64a585e5e022438fe91	provenance=1
 node	8	mask	4x4	inputs=7,2	hash=4181289fea2f452f5bbe25ed4cc59d56	provenance=1
 outputs	1
-output	0	type=13	cardinality=2
+output	0	type=12	cardinality=2
 artifact	0	0	key=red	path=red	root=5	alias=0
 artifact	0	1	key=blue	path=blue	root=8	alias=0

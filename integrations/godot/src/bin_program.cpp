@@ -1,7 +1,5 @@
 #include "bin_program.hpp"
 
-#include <binblock/module.h>
-
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/color.hpp>
@@ -383,7 +381,7 @@ bool BinProgramLoader::_handles_type(const StringName &type) const {
 
 String BinProgramLoader::_get_resource_type(const String &path) const {
   const String extension = path.get_extension().to_lower();
-  return extension == "binscript" || extension == "bbm" ? String("BinProgram") : String();
+  return extension == "binscript" ? String("BinProgram") : String();
 }
 
 Variant BinProgramLoader::_load(
@@ -395,21 +393,7 @@ Variant BinProgramLoader::_load(
   (void)original_path;
   (void)use_sub_threads;
   (void)cache_mode;
-  String loaded_source;
-  if (path.get_extension().to_lower() == "bbm") {
-    const PackedByteArray bytes = FileAccess::get_file_as_bytes(path);
-    bb_precompiled_module_info module_info;
-    bb_bytes module_source;
-    if (bb_precompiled_module_read(
-          {bytes.ptr(), static_cast<size_t>(bytes.size())},
-          &module_info,
-          &module_source
-        ) != BB_STATUS_OK) return Variant();
-    loaded_source = String::utf8(
-      reinterpret_cast<const char *>(module_source.data),
-      static_cast<int64_t>(module_source.length)
-    );
-  } else loaded_source = FileAccess::get_file_as_string(path);
+  const String loaded_source = FileAccess::get_file_as_string(path);
   Ref<BinProgram> result;
   result.instantiate();
   result->set_source(loaded_source);

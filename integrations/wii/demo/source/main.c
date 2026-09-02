@@ -12,7 +12,7 @@
 #include <string.h>
 #include <wiiuse/wpad.h>
 
-#include "suite_module.h"
+#include "suite_source.h"
 
 enum {
   BB_WII_FIFO_SIZE = 256 * 1024,
@@ -179,9 +179,9 @@ int main(void) {
   SYS_STDIO_Report(true);
   memset(tiles, 0, sizeof(tiles));
   bb_context_desc_init(&context_desc);
-  status = bb_wii_program_load(
+  status = bb_wii_program_load_source(
     &context_desc,
-    (bb_bytes){bb_wii_demo_module, BB_WII_DEMO_MODULE_BYTES},
+    (bb_bytes){bb_wii_demo_source, BB_WII_DEMO_SOURCE_BYTES},
     NULL,
     &program
   );
